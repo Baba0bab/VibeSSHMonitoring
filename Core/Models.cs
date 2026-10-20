@@ -5,19 +5,19 @@ namespace VibeSSHMonitoring.Core;
 
 public enum AuthMethod { Password, PrivateKey }
 
-/// <summary>Passage en root pour apt et le redémarrage.</summary>
+/// <summary>How root access is obtained for apt and reboots.</summary>
 public enum ElevationMethod
 {
-    None,   // utilisateur root, ou aucune élévation
-    Sudo,   // sudo avec le mot de passe de l'utilisateur (ou NOPASSWD)
-    Su      // su avec le mot de passe de root
+    None,   // root user, or no elevation
+    Sudo,   // sudo with the user's password (or NOPASSWD)
+    Su      // su with the root password
 }
 
 public enum StorageMode
 {
-    Dpapi,           // chiffré par Windows et lié à la session : aucune saisie
-    MasterPassword,  // Argon2id + AES-256-GCM, mot de passe demandé au démarrage
-    PlainText        // en clair dans le fichier
+    Dpapi,           // encrypted by Windows and tied to the session: nothing to type
+    MasterPassword,  // Argon2id + AES-256-GCM, password asked at startup
+    PlainText        // clear text in the file
 }
 
 public enum TerminalMode { Embedded, WindowsTerminal, PowerShell, Cmd, PuTTY, Custom }
@@ -25,8 +25,8 @@ public enum TerminalMode { Embedded, WindowsTerminal, PowerShell, Cmd, PuTTY, Cu
 public enum UpgradeKind { Upgrade, FullUpgrade }
 
 /// <summary>
-/// Réglages de supervision. Les valeurs globales sont toutes renseignées ; sur un serveur,
-/// une valeur null signifie « utiliser le réglage global ».
+/// Monitoring settings. Global values are all set; on a server, a null value means
+/// "use the global setting".
 /// </summary>
 public class ServerSettings
 {
@@ -35,11 +35,11 @@ public class ServerSettings
     public bool? ShowSystem { get; set; }
     public bool? ShowUpdates { get; set; }
     public int? RefreshSeconds { get; set; }
-    public int? AutoCheckHours { get; set; }      // 0 = jamais (apt update automatique)
+    public int? AutoCheckHours { get; set; }      // 0 = never (automatic apt update)
     public bool? NotifyUpdates { get; set; }
     public bool? NotifyOffline { get; set; }
     public TerminalMode? Terminal { get; set; }
-    public bool? RootShell { get; set; }          // terminal ouvert directement en root
+    public bool? RootShell { get; set; }          // terminal opened directly as root
     public UpgradeKind? Upgrade { get; set; }
     public bool? AutoRemove { get; set; }
 
@@ -59,7 +59,7 @@ public class ServerSettings
         AutoRemove = false
     };
 
-    /// <summary>Complète les valeurs manquantes (config d'une version précédente).</summary>
+    /// <summary>Fills in missing values (configuration written by an older version).</summary>
     public void FillMissing(ServerSettings defaults)
     {
         ShowOnline ??= defaults.ShowOnline;
@@ -82,7 +82,7 @@ public class ServerSettings
         Terminal.HasValue || RootShell.HasValue || Upgrade.HasValue || AutoRemove.HasValue;
 }
 
-/// <summary>Réglages effectifs d'un serveur : le sien s'il est défini, sinon le global.</summary>
+/// <summary>Effective settings of a server: its own value when set, otherwise the global one.</summary>
 public sealed record EffectiveSettings(
     bool ShowOnline, bool ShowResources, bool ShowSystem, bool ShowUpdates,
     int RefreshSeconds, int AutoCheckHours, bool NotifyUpdates, bool NotifyOffline,
@@ -107,7 +107,7 @@ public sealed record EffectiveSettings(
     }
 }
 
-/// <summary>Serveur supervisé. Les mots de passe ne sont jamais ici : voir <see cref="SecretVault"/>.</summary>
+/// <summary>A monitored server. Passwords are never stored here: see <see cref="SecretVault"/>.</summary>
 public class ServerConfig
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -118,11 +118,11 @@ public class ServerConfig
     public AuthMethod Auth { get; set; } = AuthMethod.Password;
     public string? KeyPath { get; set; }
     public ElevationMethod Elevation { get; set; } = ElevationMethod.None;
-    /// <summary>sudo : réutilise le mot de passe de connexion.</summary>
+    /// <summary>sudo: reuse the login password.</summary>
     public bool SudoSamePassword { get; set; } = true;
     public List<string> Tags { get; set; } = new();
 
-    /// <summary>Clé d'hôte approuvée (empreinte SHA256 au format ssh, sans préfixe).</summary>
+    /// <summary>Approved host key (SHA256 fingerprint in ssh format, without prefix).</summary>
     public string? HostKeyType { get; set; }
     public string? HostKeyFingerprint { get; set; }
 
@@ -131,7 +131,7 @@ public class ServerConfig
 
     public bool IsRootUser => Username == "root";
 
-    /// <summary>Méthode d'élévation réellement utilisée (aucune si on est déjà root).</summary>
+    /// <summary>Elevation method actually used (none when already root).</summary>
     public ElevationMethod EffectiveElevation => IsRootUser ? ElevationMethod.None : Elevation;
 
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? Host : Name;
@@ -155,11 +155,11 @@ public class ServerConfig
     }
 }
 
-/// <summary>Secrets d'un serveur, stockés dans le coffre.</summary>
+/// <summary>Secrets of a server, kept in the vault.</summary>
 public class ServerSecrets
 {
     public string? Password { get; set; }
-    /// <summary>Mot de passe sudo (si différent) ou mot de passe root pour su.</summary>
+    /// <summary>sudo password (when different) or root password for su.</summary>
     public string? ElevationPassword { get; set; }
     public string? KeyPassphrase { get; set; }
 
@@ -168,7 +168,7 @@ public class ServerSecrets
 
     public ServerSecrets Clone() => (ServerSecrets)MemberwiseClone();
 
-    /// <summary>Mot de passe à fournir à sudo ou su, null s'il n'y en a pas.</summary>
+    /// <summary>Password to give to sudo or su, null when there is none.</summary>
     public string? ElevationSecretFor(ServerConfig server) => server.EffectiveElevation switch
     {
         ElevationMethod.Sudo when server.SudoSamePassword => NullIfEmpty(Password),
@@ -179,7 +179,7 @@ public class ServerSecrets
     private static string? NullIfEmpty(string? s) => string.IsNullOrEmpty(s) ? null : s;
 }
 
-/// <summary>Paquet pouvant être mis à jour (ligne de « apt list --upgradable »).</summary>
+/// <summary>A package that can be upgraded (a line of "apt list --upgradable").</summary>
 public sealed record PackageUpdate(string Name, string Suites, string NewVersion, string OldVersion, string Arch)
 {
     public bool IsSecurity => Suites.Contains("-security", StringComparison.OrdinalIgnoreCase);

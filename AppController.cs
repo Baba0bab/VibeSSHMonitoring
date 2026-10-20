@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Baba0bab — Vibe SSH Monitoring
 
+using System.Diagnostics;
 using System.Runtime;
 using System.Windows;
 using System.Windows.Input;
@@ -11,9 +12,9 @@ using VibeSSHMonitoring.UI;
 namespace VibeSSHMonitoring;
 
 /// <summary>
-/// Cœur de l'application, indépendant de la fenêtre : configuration, coffre, supervision et
-/// icône de la zone de notification. Comme GoveeScreen, la fenêtre n'existe que lorsqu'elle est
-/// affichée — sauf si des terminaux intégrés sont ouverts : elle est alors seulement masquée.
+/// Core of the application, independent from the window: configuration, vault, monitoring and
+/// notification area icon. As in GoveeScreen, the window only exists while it is shown, unless
+/// built-in terminals are open: it is then only hidden.
 /// </summary>
 public sealed class AppController : IDisposable
 {
@@ -43,7 +44,7 @@ public sealed class AppController : IDisposable
         Vault = SecretVault.Open(Config.Storage);
         if (Config.Storage != Vault.Mode)
         {
-            Config.Storage = Vault.Mode;   // le fichier du coffre fait foi
+            Config.Storage = Vault.Mode;   // the vault file wins
             Config.Save();
         }
         Vault.LockStateChanged += () => _dispatcher.BeginInvoke(OnVaultChanged);
@@ -68,7 +69,7 @@ public sealed class AppController : IDisposable
         _tray.InstallUpdateRequested += RestartToUpdate;
         _tray.ExitRequested += Exit;
 
-        // Verrouillage automatique (mot de passe maître) après une période sans activité
+        // Auto-lock (master password) after a period of inactivity
         InputManager.Current.PreProcessInput += (_, e) =>
         {
             if (e.StagingItem.Input is MouseButtonEventArgs or KeyEventArgs)
@@ -84,7 +85,7 @@ public sealed class AppController : IDisposable
         _notifyTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _notifyTimer.Tick += (_, _) => FlushUpdateNotifications();
 
-        // Mises à jour de l'application : premier passage peu après le démarrage, puis toutes les 12 h
+        // Application updates: first check shortly after startup, then every 12 h
         _appUpdateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
         _appUpdateTimer.Tick += (_, _) =>
         {
@@ -110,12 +111,11 @@ public sealed class AppController : IDisposable
             if (showWindow)
                 _dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => _ = UnlockInteractiveAsync());
             else
-                _tray.ShowNotification("Coffre verrouillé",
-                    "Cliquez ici pour ouvrir l'application et saisir le mot de passe maître.");
+                _tray.ShowNotification(Loc.T("Vault.LockedNotifyTitle"), Loc.T("Vault.LockedNotifyText"));
         }
     }
 
-    // ===== Fenêtre =====
+    // ===== Window =====
 
     public MainWindow? Window => _window;
 
@@ -134,14 +134,14 @@ public sealed class AppController : IDisposable
         _window.Activate();
     }
 
-    /// <summary>Envoie l'application dans la zone de notification.</summary>
+    /// <summary>Sends the application to the notification area.</summary>
     public void HideToTray()
     {
         if (_window is null)
             return;
         if (_window.HasTerminals)
         {
-            _window.Hide();   // garde les sessions ouvertes
+            _window.Hide();   // keeps the sessions open
             return;
         }
         _closingToTray = true;
@@ -165,8 +165,8 @@ public sealed class AppController : IDisposable
             }
             return;
         }
-        if (_window.HasTerminals && !Dialogs.Confirm(_window, "Quitter ?",
-                $"{_window.TerminalCount} session(s) de terminal sont ouvertes et seront fermées.", "Quitter"))
+        if (_window.HasTerminals && !Dialogs.Confirm(_window, Loc.T("Exit.ConfirmTitle"),
+                Loc.T("Exit.ConfirmTerminals", _window.TerminalCount), Loc.T("Tray.Exit")))
             e.Cancel = true;
     }
 
@@ -196,28 +196,48 @@ public sealed class AppController : IDisposable
         if (_exiting)
             return;
         _exiting = true;
-        // Mise à jour téléchargée : installée en silence une fois l'application fermée
+        // Downloaded update: installed silently once the application has closed
         if (!_installScheduled && Config.AppUpdateAutoInstall && Updater.State == AppUpdateState.Ready)
             _installScheduled = Updater.ScheduleInstall(restart: false);
         _window?.Close();
         Application.Current.Shutdown();
     }
 
-    // ===== Mises à jour de l'application =====
+    /// <summary>
+    /// Restarts the application (to apply a language change). The new instance waits for this one
+    /// to exit before taking over; open terminals are closed after confirmation.
+    /// </summary>
+    public void Restart()
+    {
+        if (_window is { HasTerminals: true } &&
+            !Dialogs.Confirm(_window, Loc.T("Restart.ConfirmTitle"),
+                Loc.T("Restart.ConfirmTerminals", _window.TerminalCount), Loc.T("Settings.LanguageRestart")))
+            return;
+        string? exe = Environment.ProcessPath;
+        if (exe is null)
+            return;
+        Process.Start(new ProcessStartInfo(exe)
+        {
+            UseShellExecute = false,
+            ArgumentList = { App.WaitForArgument, Environment.ProcessId.ToString() }
+        })?.Dispose();
+        Exit();
+    }
 
-    /// <summary>Installe la mise à jour téléchargée puis relance l'application.</summary>
+    // ===== Application updates =====
+
+    /// <summary>Installs the downloaded update, then restarts the application.</summary>
     public void RestartToUpdate()
     {
         if (Updater.State != AppUpdateState.Ready)
             return;
         if (_window is { HasTerminals: true } &&
-            !Dialogs.Confirm(_window, $"Installer la version {Updater.AvailableVersion} ?",
-                $"L'application va redémarrer : les {_window.TerminalCount} session(s) de terminal ouvertes seront fermées.",
-                "Redémarrer et mettre à jour"))
+            !Dialogs.Confirm(_window, Loc.T("AppUpdate.ConfirmTitle", Updater.AvailableVersion),
+                Loc.T("Restart.ConfirmTerminals", _window.TerminalCount), Loc.T("AppUpdate.RestartInstall")))
             return;
         if (!Updater.ScheduleInstall(restart: true))
         {
-            ShowError("Mise à jour", $"Installation impossible : {Updater.Error}");
+            ShowError(Loc.T("AppUpdate.ErrorTitle"), Loc.T("AppUpdate.InstallFailed", Updater.Error));
             return;
         }
         _installScheduled = true;
@@ -237,10 +257,8 @@ public sealed class AppController : IDisposable
         if (Updater.State != AppUpdateState.Ready || _appUpdateNotified)
             return;
         _appUpdateNotified = true;
-        _tray.ShowNotification($"Vibe SSH Monitoring {Updater.AvailableVersion} est prête",
-            Config.AppUpdateAutoInstall
-                ? "Elle sera installée à la fermeture de l'application. Cliquez pour redémarrer maintenant depuis les paramètres."
-                : "Ouvrez les paramètres pour redémarrer et l'installer.");
+        _tray.ShowNotification(Loc.T("AppUpdate.ReadyTitle", Updater.AvailableVersion),
+            Loc.T(Config.AppUpdateAutoInstall ? "AppUpdate.ReadyOnExit" : "AppUpdate.ReadyManual"));
     }
 
     public void Dispose()
@@ -256,11 +274,11 @@ public sealed class AppController : IDisposable
         _window?.OpenTerminal(server);
     }
 
-    // ===== Coffre =====
+    // ===== Vault =====
 
     /// <summary>
-    /// Demande le mot de passe maître si le coffre est verrouillé. Un seul dialogue à la fois :
-    /// les demandes simultanées attendent le même.
+    /// Asks for the master password when the vault is locked. One dialog at a time: simultaneous
+    /// requests wait for the same one.
     /// </summary>
     public Task<bool> UnlockInteractiveAsync()
     {
@@ -273,19 +291,17 @@ public sealed class AppController : IDisposable
     {
         try
         {
-            await Task.Yield();   // laisse l'appelant poser son await avant le dialogue modal
+            await Task.Yield();   // lets the caller set up its await before the modal dialog
             if (Vault.NeedsMasterPasswordSetup)
             {
-                string? created = Dialogs.Password(_window, "Créer le mot de passe maître",
-                    "Ce mot de passe chiffre les identifiants de vos serveurs. Il ne peut pas être récupéré : notez-le en lieu sûr.",
-                    confirm: true, async pw => await Task.Run(() => Vault.Unlock(pw)) ? null : "Erreur de création du coffre.",
-                    okText: "Créer");
+                string? created = Dialogs.Password(_window, Loc.T("Vault.CreateTitle"), Loc.T("Vault.CreateText"),
+                    confirm: true, async pw => await Task.Run(() => Vault.Unlock(pw)) ? null : Loc.T("Vault.CreateFailed"),
+                    okText: Loc.T("Vault.CreateButton"));
                 return created is not null;
             }
-            string? password = Dialogs.Password(_window, "Déverrouiller le coffre",
-                "Saisissez le mot de passe maître pour accéder aux identifiants de vos serveurs.",
-                confirm: false, async pw => await Task.Run(() => Vault.Unlock(pw)) ? null : "Mot de passe incorrect.",
-                okText: "Déverrouiller");
+            string? password = Dialogs.Password(_window, Loc.T("Vault.UnlockTitle"), Loc.T("Vault.UnlockText"),
+                confirm: false, async pw => await Task.Run(() => Vault.Unlock(pw)) ? null : Loc.T("Vault.WrongPassword"),
+                okText: Loc.T("Detail.Unlock"));
             return password is not null;
         }
         finally
@@ -302,33 +318,32 @@ public sealed class AppController : IDisposable
         UpdateSummary();
     }
 
-    // ===== Dialogues, notifications =====
+    // ===== Dialogs, notifications =====
 
     public bool ConfirmHostKey(ServerConfig server, SshOperationException ex)
     {
         bool changed = ex.Kind == SshErrorKind.HostKeyChanged;
-        string detail = $"Type : {ex.HostKeyType}\nSHA256:{ex.Fingerprint}" +
-                        (changed ? $"\n\nEmpreinte enregistrée :\nSHA256:{server.HostKeyFingerprint}" : "");
+        string detail = Loc.T("HostKey.Detail", ex.HostKeyType, ex.Fingerprint) +
+                        (changed ? "\n\n" + Loc.T("HostKey.DetailSaved", server.HostKeyFingerprint) : "");
         return changed
-            ? Dialogs.Confirm(Dialogs.ActiveWindow(), "La clé d'hôte a changé !",
-                $"La clé présentée par {server.DisplayName} ({server.Host}) ne correspond pas à celle enregistrée. " +
-                "C'est normal après une réinstallation du serveur ; sinon, il peut s'agir d'une interception (man-in-the-middle). " +
-                "N'acceptez que si vous savez pourquoi elle a changé.",
-                "Faire confiance à la nouvelle clé", danger: true, detail: detail)
-            : Dialogs.Confirm(Dialogs.ActiveWindow(), "Nouvelle clé d'hôte",
-                $"Première connexion à {server.DisplayName} ({server.Host}). Vérifiez que l'empreinte correspond à celle du serveur " +
-                "(ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub), puis approuvez-la.",
-                "Approuver", detail: detail);
+            ? Dialogs.Confirm(Dialogs.ActiveWindow(), Loc.T("HostKey.ChangedTitle"),
+                Loc.T("HostKey.ChangedText", server.DisplayName, server.Host),
+                Loc.T("HostKey.TrustNew"), danger: true, detail: detail)
+            : Dialogs.Confirm(Dialogs.ActiveWindow(), Loc.T("HostKey.NewTitle"),
+                Loc.T("HostKey.NewText", server.DisplayName, server.Host),
+                Loc.T("HostKey.Approve"), detail: detail);
     }
 
     public void ShowError(string title, string message) => Dialogs.Info(Dialogs.ActiveWindow(), title, message, error: true);
 
     public void Notify(string title, string text) => _tray.ShowNotification(title, text);
 
-    /// <summary>Plusieurs serveurs dans la même minute : une seule notification groupée.</summary>
+    /// <summary>Several servers within the same minute: a single grouped notification.</summary>
     public void NotifyUpdates(string server, int count, int security)
     {
-        _pendingUpdateNotes.Add(security > 0 ? $"{server} : {count} (dont {security} sécurité)" : $"{server} : {count}");
+        _pendingUpdateNotes.Add(security > 0
+            ? Loc.T("Notify.UpdatesLineSecurity", server, count, security)
+            : Loc.T("Notify.UpdatesLine", server, count));
         _notifyTimer.Stop();
         _notifyTimer.Start();
     }
@@ -338,7 +353,9 @@ public sealed class AppController : IDisposable
         _notifyTimer.Stop();
         if (_pendingUpdateNotes.Count == 0)
             return;
-        string title = _pendingUpdateNotes.Count == 1 ? "Mises à jour disponibles" : $"Mises à jour sur {_pendingUpdateNotes.Count} serveurs";
+        string title = _pendingUpdateNotes.Count == 1
+            ? Loc.T("Notify.UpdatesTitle")
+            : Loc.T("Notify.UpdatesTitleMany", _pendingUpdateNotes.Count);
         _tray.ShowNotification(title, string.Join("\n", _pendingUpdateNotes));
         _pendingUpdateNotes.Clear();
     }
@@ -346,13 +363,13 @@ public sealed class AppController : IDisposable
     public void CopySecretToClipboard(string secret)
     {
         ClipboardHelper.SetSecret(secret, TimeSpan.FromSeconds(30));
-        _window?.ShowToast("Mot de passe copié dans le presse-papiers (effacé dans 30 s) : collez-le avec un clic droit.");
+        _window?.ShowToast(Loc.T("Toast.PasswordCopied"));
     }
 
     public Task CheckAllAsync() =>
         Servers.RunForAllAsync(Servers.Servers.Where(s => !s.NoApt), vm => Servers.CheckUpdatesAsync(vm));
 
-    // ===== Résumé (menu latéral, icône) =====
+    // ===== Summary (side menu, icon) =====
 
     public string SummaryText
     {
@@ -360,10 +377,13 @@ public sealed class AppController : IDisposable
         {
             var list = Servers.Servers;
             if (list.Count == 0)
-                return "Aucun serveur";
+                return Loc.T("Summary.NoServer");
             int online = list.Count(s => s.IsOnline);
             int updates = list.Sum(s => s.UpdateCount ?? 0);
-            return $"{online}/{list.Count} en ligne" + (updates > 0 ? $" · {updates} mise{(updates > 1 ? "s" : "")} à jour" : "");
+            string text = Loc.T("Summary.Online", online, list.Count);
+            if (updates > 0)
+                text += " · " + (updates == 1 ? Loc.T("Updates.One") : Loc.T("Updates.Many", updates));
+            return text;
         }
     }
 

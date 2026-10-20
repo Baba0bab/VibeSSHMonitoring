@@ -11,13 +11,18 @@ public static class Program
     [STAThread]
     public static void Main()
     {
-        // En tout premier : l'installateur et le programme de mise à jour relancent l'exe avec des
-        // arguments à eux (installation, mise à jour, désinstallation), traités puis quittés ici.
+        var config = AppConfig.Load();
+
+        // First of all: the installer and the updater restart the exe with their own arguments
+        // (install, update, uninstall), which are handled here before exiting.
         VelopackApp.Build()
             .OnBeforeUninstallFastCallback(_ => AppUpdater.CleanupBeforeUninstall())
-            // Une mise à jour téléchargée s'installe au démarrage suivant, sauf si l'utilisateur l'a désactivé
-            .SetAutoApplyOnStartup(AppConfig.Load().AppUpdateAutoInstall)
+            // A downloaded update is installed at the next startup, unless the user turned it off
+            .SetAutoApplyOnStartup(config.AppUpdateAutoInstall)
             .Run();
+
+        // Language before any window: the interface reads its texts when it is built
+        Loc.Initialize(config.Language);
 
         var app = new App();
         app.InitializeComponent();

@@ -32,8 +32,8 @@ public abstract class ObservableObject : INotifyPropertyChanged
 public enum ServerState { Unknown, Checking, Online, Offline, AuthFailed, HostKeyUnknown, HostKeyChanged, Locked, Error }
 
 /// <summary>
-/// Carte d'un serveur : configuration, dernier état relevé, opération en cours et journal.
-/// Modifié uniquement depuis le thread UI (le journal accepte n'importe quel thread).
+/// A server card: configuration, last known state, running operation and log.
+/// Only changed from the UI thread (the log accepts any thread).
 /// </summary>
 public sealed class ServerViewModel : ObservableObject
 {
@@ -68,7 +68,7 @@ public sealed class ServerViewModel : ObservableObject
         set
         {
             _config = value;
-            OnPropertyChanged(string.Empty);   // tout est dérivé de la config
+            OnPropertyChanged(string.Empty);   // everything derives from the configuration
         }
     }
 
@@ -90,9 +90,9 @@ public sealed class ServerViewModel : ObservableObject
 
     public string AccessText => _config.EffectiveElevation switch
     {
-        ElevationMethod.Sudo => "via sudo",
-        ElevationMethod.Su => "via su",
-        _ => _config.IsRootUser ? "root direct" : "sans élévation"
+        ElevationMethod.Sudo => Loc.T("Access.Sudo"),
+        ElevationMethod.Su => Loc.T("Access.Su"),
+        _ => Loc.T(_config.IsRootUser ? "Access.Root" : "Access.None")
     };
 
     public bool ShowOnline => _settings.ShowOnline;
@@ -100,7 +100,7 @@ public sealed class ServerViewModel : ObservableObject
     public bool ShowSystem => _settings.ShowSystem && _probe?.Os is not null;
     public bool ShowUpdates => _settings.ShowUpdates;
 
-    // ===== État =====
+    // ===== State =====
 
     public ServerState State
     {
@@ -117,7 +117,7 @@ public sealed class ServerViewModel : ObservableObject
         }
     }
 
-    /// <summary>Message d'erreur détaillé (info-bulle, page de détail).</summary>
+    /// <summary>Detailed error message (tooltip, details page).</summary>
     public string? StateDetail
     {
         get => _stateDetail;
@@ -134,15 +134,15 @@ public sealed class ServerViewModel : ObservableObject
 
     public string StateText => _state switch
     {
-        ServerState.Checking => "Vérification…",
-        ServerState.Online => "En ligne",
-        ServerState.Offline => "Hors ligne",
-        ServerState.AuthFailed => "Authentification refusée",
-        ServerState.HostKeyUnknown => "Clé d'hôte à approuver",
-        ServerState.HostKeyChanged => "Clé d'hôte modifiée !",
-        ServerState.Locked => "Coffre verrouillé",
-        ServerState.Error => "Erreur",
-        _ => "En attente"
+        ServerState.Checking => Loc.T("State.Checking"),
+        ServerState.Online => Loc.T("State.Online"),
+        ServerState.Offline => Loc.T("State.Offline"),
+        ServerState.AuthFailed => Loc.T("State.AuthFailed"),
+        ServerState.HostKeyUnknown => Loc.T("State.HostKeyUnknown"),
+        ServerState.HostKeyChanged => Loc.T("State.HostKeyChanged"),
+        ServerState.Locked => Loc.T("State.Locked"),
+        ServerState.Error => Loc.T("State.Error"),
+        _ => Loc.T("State.Waiting")
     };
 
     public Brush StateBrush => Resource(_state switch
@@ -176,7 +176,7 @@ public sealed class ServerViewModel : ObservableObject
         }
     }
 
-    // ===== Sonde =====
+    // ===== Probe =====
 
     public ProbeResult? Probe
     {
@@ -196,10 +196,10 @@ public sealed class ServerViewModel : ObservableObject
     public string KernelText => _probe?.Kernel is { } k ? $"{k}{(_probe.Arch is { } a ? $" · {a}" : "")}" : "—";
     public string HostnameText => _probe?.Hostname ?? "—";
     public string UptimeText => _probe?.Uptime is { } up ? Format.Duration(up) : "—";
-    public string LoadText => _probe?.Load is { } load ? $"{load}{(_probe.Cpus is { } c ? $" · {c} cœurs" : "")}" : "—";
+    public string LoadText => _probe?.Load is { } load ? $"{load}{(_probe.Cpus is { } c ? $" · {Loc.T("Detail.Cores", c)}" : "")}" : "—";
 
     public double CpuPercent => _probe?.CpuPercent ?? 0;
-    public string CpuText => _probe?.CpuPercent is { } cpu ? $"{cpu:0} %" : "—";
+    public string CpuText => _probe?.CpuPercent is { } cpu ? Format.Percent(cpu) : "—";
     public Brush CpuBrush => MeterBrush(_probe?.CpuPercent);
 
     public double MemPercent => MemUsedPercent ?? 0;
@@ -210,7 +210,7 @@ public sealed class ServerViewModel : ObservableObject
     public Brush MemBrush => MeterBrush(MemUsedPercent);
 
     public string SwapText => _probe is { SwapTotalKb: > 0 and var total, SwapFreeKb: { } free }
-        ? $"{Format.Size(total - free)} / {Format.Size(total)}" : _probe?.SwapTotalKb == 0 ? "aucun" : "—";
+        ? $"{Format.Size(total - free)} / {Format.Size(total)}" : _probe?.SwapTotalKb == 0 ? Loc.T("Detail.NoSwap") : "—";
 
     public double DiskPercent => DiskUsedPercent ?? 0;
     private double? DiskUsedPercent => _probe is { DiskTotalKb: > 0 and var total, DiskUsedKb: { } used }
@@ -231,25 +231,25 @@ public sealed class ServerViewModel : ObservableObject
 
     public string UpdatesText => UpdateCount switch
     {
-        null => _probe is { HasApt: false } ? "apt indisponible" : "—",
-        0 => "À jour",
-        1 => "1 mise à jour",
-        var n => $"{n} mises à jour"
+        null => _probe is { HasApt: false } ? Loc.T("Updates.NoApt") : "—",
+        0 => Loc.T("Updates.UpToDate"),
+        1 => Loc.T("Updates.One"),
+        var n => Loc.T("Updates.Many", n)
     };
 
-    public string UpdatesDetail => SecurityCount > 0 ? $"dont {SecurityCount} de sécurité" : "";
+    public string UpdatesDetail => SecurityCount > 0 ? Loc.T("Updates.SecurityDetail", SecurityCount) : "";
 
     public string LastCheckText => _config.LastUpdateCheckUtc is { } t
-        ? $"Dernière recherche de mises à jour : {Format.Ago(t)}"
-        : "Aucune recherche de mises à jour depuis l'application";
+        ? Loc.T("Updates.LastCheck", Format.Ago(t))
+        : Loc.T("Updates.NeverChecked");
 
-    /// <summary>Ligne d'état sous la carte : opération en cours, erreur, ou dernier relevé.</summary>
+    /// <summary>Status line under the card: running operation, error, or last reading.</summary>
     public string StatusLine =>
-        _isBusy ? _busyText ?? "En cours…" :
+        _isBusy ? _busyText ?? Loc.T("Status.Busy") :
         HasProblem && _stateDetail is not null ? _stateDetail :
-        _lastRefresh is { } t ? $"Relevé {Format.Ago(t.ToUniversalTime())}" : "En attente du premier relevé";
+        _lastRefresh is { } t ? Loc.T("Status.LastReading", Format.Ago(t.ToUniversalTime())) : Loc.T("Status.FirstReading");
 
-    // ===== Opération en cours =====
+    // ===== Running operation =====
 
     public bool IsBusy
     {
@@ -282,19 +282,19 @@ public sealed class ServerViewModel : ObservableObject
         set => Set(ref _isSelected, value);
     }
 
-    /// <summary>Rafraîchit les textes relatifs (« il y a 2 min »).</summary>
+    /// <summary>Refreshes relative texts ("2 min ago").</summary>
     public void Tick()
     {
         OnPropertyChanged(nameof(StatusLine));
         OnPropertyChanged(nameof(LastCheckText));
     }
 
-    // ===== Journal =====
+    // ===== Log =====
 
     public string LogText => _log.Text;
     public bool HasLog => _log.Length > 0;
 
-    /// <summary>Ajoute au journal depuis n'importe quel thread ; l'affichage est regroupé.</summary>
+    /// <summary>Appends to the log from any thread; display updates are batched.</summary>
     public void AppendLog(string text)
     {
         lock (_pendingLog)
@@ -333,7 +333,7 @@ public sealed class ServerViewModel : ObservableObject
         OnPropertyChanged(nameof(HasLog));
     }
 
-    // ===== Utilitaires =====
+    // ===== Helpers =====
 
     private static Brush Resource(string key) => (Brush)Application.Current.FindResource(key);
 
@@ -346,8 +346,8 @@ public sealed class ServerViewModel : ObservableObject
 }
 
 /// <summary>
-/// Texte de journal façon terminal : un retour chariot seul (barres de progression d'apt)
-/// réécrit la ligne courante au lieu d'en empiler des centaines.
+/// Terminal-like log text: a lone carriage return (apt progress bars) rewrites the current
+/// line instead of stacking hundreds of them.
 /// </summary>
 public sealed class LogBuffer
 {
@@ -367,7 +367,7 @@ public sealed class LogBuffer
             {
                 _pendingCr = false;
                 if (c != '\n')
-                    _text.Length = _lineStart;   // \r seul : on repart du début de la ligne
+                    _text.Length = _lineStart;   // lone \r: start again from the beginning of the line
             }
             switch (c)
             {
@@ -403,15 +403,14 @@ public sealed class LogBuffer
     }
 }
 
+/// <summary>Sizes, durations and relative dates in the interface language.</summary>
 public static class Format
 {
-    private static readonly System.Globalization.CultureInfo Fr = new("fr-FR");
-
-    /// <summary>Taille depuis des kio : « 812 Mo », « 7,6 Go ».</summary>
+    /// <summary>Size from KiB: "812 MB", "7.6 GB" (units and decimal separator follow the language).</summary>
     public static string Size(long kb)
     {
         double value = kb;
-        string[] units = { "Ko", "Mo", "Go", "To", "Po" };
+        string[] units = Loc.T("Format.SizeUnits").Split('|');
         int unit = 0;
         while (value >= 1024 && unit < units.Length - 1)
         {
@@ -419,22 +418,24 @@ public static class Format
             unit++;
         }
         return value >= 100 || unit == 0
-            ? $"{value.ToString("0", Fr)} {units[unit]}"
-            : $"{value.ToString("0.#", Fr)} {units[unit]}";
+            ? $"{value.ToString("0", Loc.Culture)} {units[unit]}"
+            : $"{value.ToString("0.#", Loc.Culture)} {units[unit]}";
     }
 
+    public static string Percent(double value) => Loc.T("Format.Percent", value.ToString("0", Loc.Culture));
+
     public static string Duration(TimeSpan t) =>
-        t.TotalDays >= 1 ? $"{(int)t.TotalDays} j {t.Hours} h" :
-        t.TotalHours >= 1 ? $"{(int)t.TotalHours} h {t.Minutes} min" :
-        $"{Math.Max(1, (int)t.TotalMinutes)} min";
+        t.TotalDays >= 1 ? Loc.T("Format.DaysHours", (int)t.TotalDays, t.Hours) :
+        t.TotalHours >= 1 ? Loc.T("Format.HoursMinutes", (int)t.TotalHours, t.Minutes) :
+        Loc.T("Format.Minutes", Math.Max(1, (int)t.TotalMinutes));
 
     public static string Ago(DateTime utc)
     {
         var d = DateTime.UtcNow - utc;
-        if (d.TotalSeconds < 45) return "à l'instant";
-        if (d.TotalMinutes < 60) return $"il y a {Math.Max(1, (int)Math.Round(d.TotalMinutes))} min";
-        if (d.TotalHours < 24) return $"il y a {(int)d.TotalHours} h";
-        if (d.TotalDays < 7) return $"il y a {(int)d.TotalDays} j";
-        return "le " + utc.ToLocalTime().ToString("d MMM yyyy", Fr);
+        if (d.TotalSeconds < 45) return Loc.T("Format.JustNow");
+        if (d.TotalMinutes < 60) return Loc.T("Format.MinutesAgo", Math.Max(1, (int)Math.Round(d.TotalMinutes)));
+        if (d.TotalHours < 24) return Loc.T("Format.HoursAgo", (int)d.TotalHours);
+        if (d.TotalDays < 7) return Loc.T("Format.DaysAgo", (int)d.TotalDays);
+        return Loc.T("Format.OnDate", utc.ToLocalTime().ToString("d MMM yyyy", Loc.Culture));
     }
 }

@@ -11,11 +11,11 @@ using VibeSSHMonitoring.UI;
 
 namespace VibeSSHMonitoring;
 
-/// <summary>Fiche d'un serveur : connexion, authentification, accès root, groupes et réglages propres.</summary>
+/// <summary>Server editor: connection, authentication, root access, groups and server-specific settings.</summary>
 public partial class ServerEditWindow : Window
 {
     private readonly AppController _app;
-    private readonly ServerConfig _config;   // copie de travail (la clé d'hôte approuvée pendant un test y est notée)
+    private readonly ServerConfig _config;   // working copy (a host key approved during a test is recorded here)
     private readonly List<(ComboBox Combo, Action<ServerSettings, object?> Apply)> _overrides = new();
     private bool _busy;
 
@@ -29,9 +29,9 @@ public partial class ServerEditWindow : Window
         InitializeComponent();
         SourceInitialized += (_, _) => DialogWindow.ApplyDarkFrame(this);
 
-        Title = isNew ? "Ajouter un serveur" : $"Modifier {config.DisplayName}";
-        TitleText.Text = isNew ? "Ajouter un serveur" : config.DisplayName;
-        SaveButton.Content = isNew ? "Ajouter" : "Enregistrer";
+        Title = isNew ? Loc.T("Servers.Add") : Loc.T("Editor.EditTitle", config.DisplayName);
+        TitleText.Text = isNew ? Loc.T("Servers.Add") : config.DisplayName;
+        SaveButton.Content = Loc.T(isNew ? "Editor.AddButton" : "Common.Save");
 
         NameBox.Text = config.Name;
         HostBox.Text = config.Host;
@@ -63,7 +63,7 @@ public partial class ServerEditWindow : Window
         Loaded += (_, _) => (isNew ? HostBox : NameBox).Focus();
     }
 
-    // ===== Authentification, élévation =====
+    // ===== Authentication, elevation =====
 
     private void Auth_Checked(object sender, RoutedEventArgs e) => SyncAuth();
 
@@ -93,15 +93,14 @@ public partial class ServerEditWindow : Window
         bool su = !root && ElevSuRadio.IsChecked == true;
         SudoPanel.Visibility = sudo ? Visibility.Visible : Visibility.Collapsed;
         SuPanel.Visibility = su ? Visibility.Visible : Visibility.Collapsed;
-        // Avec une clé, il n'y a pas de mot de passe de connexion à réutiliser pour sudo
+        // With a key, there is no login password to reuse for sudo
         bool keyAuth = AuthKeyRadio.IsChecked == true;
         SudoPasswordPanel.Visibility = sudo && (SudoSameSwitch.IsChecked != true || keyAuth) ? Visibility.Visible : Visibility.Collapsed;
 
-        ElevationHint.Text = root
-            ? "Connexion directe en root : aucune élévation nécessaire."
-            : sudo ? "Les commandes root passent par sudo (mot de passe de l'utilisateur, ou règle NOPASSWD)."
-            : su ? "Les commandes root passent par su, avec le mot de passe de root (serveurs qui refusent la connexion directe en root)."
-            : "Sans élévation, « Check updates », « Update » et le redémarrage échoueront faute de droits root.";
+        ElevationHint.Text = Loc.T(root ? "Editor.HintRoot"
+            : sudo ? "Editor.HintSudo"
+            : su ? "Editor.HintSu"
+            : "Editor.HintNone");
     }
 
     private void BrowseKey_Click(object sender, RoutedEventArgs e)
@@ -109,20 +108,20 @@ public partial class ServerEditWindow : Window
         string ssh = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ssh");
         var dialog = new OpenFileDialog
         {
-            Title = "Clé privée SSH",
+            Title = Loc.T("Editor.BrowseTitle"),
             InitialDirectory = Directory.Exists(ssh) ? ssh : null,
-            Filter = "Clés privées|*.*|Clés PuTTY (*.ppk)|*.ppk"
+            Filter = Loc.T("Editor.BrowseFilter")
         };
         if (dialog.ShowDialog(this) == true)
             KeyPathBox.Text = dialog.FileName;
     }
 
-    // ===== Clé d'hôte =====
+    // ===== Host key =====
 
     private void SyncHostKey()
     {
         HostKeySection.Visibility = _config.HostKeyFingerprint is null ? Visibility.Collapsed : Visibility.Visible;
-        HostKeyCard.Header = _config.HostKeyType ?? "Clé d'hôte";
+        HostKeyCard.Header = _config.HostKeyType ?? Loc.T("Editor.HostKeyFallback");
         HostKeyCard.Description = $"SHA256:{_config.HostKeyFingerprint}";
     }
 
@@ -133,33 +132,33 @@ public partial class ServerEditWindow : Window
         SyncHostKey();
     }
 
-    // ===== Réglages spécifiques =====
+    // ===== Server-specific settings =====
 
     private void BuildOverrides(ServerSettings current)
     {
         var d = _app.Config.Defaults;
-        var onOff = new (string, object)[] { ("Activé", true), ("Désactivé", false) };
+        var onOff = new (string, object)[] { (Loc.T("Common.On"), true), (Loc.T("Common.Off"), false) };
 
-        AddBool("", "En ligne / hors ligne et latence", d.ShowOnline, current.ShowOnline, (o, v) => o.ShowOnline = (bool?)v);
-        AddBool("", "Ressources (CPU, RAM, disque)", d.ShowResources, current.ShowResources, (o, v) => o.ShowResources = (bool?)v);
-        AddBool("", "Informations système", d.ShowSystem, current.ShowSystem, (o, v) => o.ShowSystem = (bool?)v);
-        AddBool("", "Mises à jour", d.ShowUpdates, current.ShowUpdates, (o, v) => o.ShowUpdates = (bool?)v);
-        Add("", "Fréquence des relevés",
+        AddBool("", Loc.T("Settings.ShowOnline"), d.ShowOnline, current.ShowOnline, (o, v) => o.ShowOnline = (bool?)v);
+        AddBool("", Loc.T("Editor.OverrideResources"), d.ShowResources, current.ShowResources, (o, v) => o.ShowResources = (bool?)v);
+        AddBool("", Loc.T("Settings.ShowSystem"), d.ShowSystem, current.ShowSystem, (o, v) => o.ShowSystem = (bool?)v);
+        AddBool("", Loc.T("Settings.ShowUpdates"), d.ShowUpdates, current.ShowUpdates, (o, v) => o.ShowUpdates = (bool?)v);
+        Add("", Loc.T("Settings.RefreshInterval"),
             new (string, object)[] { ("30 s", 30), ("1 min", 60), ("5 min", 300), ("15 min", 900), ("1 h", 3600) },
             d.RefreshSeconds, current.RefreshSeconds, (o, v) => o.RefreshSeconds = (int?)v);
-        Add("", "Recherche automatique des mises à jour",
-            new (string, object)[] { ("Jamais", 0), ("Toutes les 6 h", 6), ("Toutes les 12 h", 12), ("Toutes les 24 h", 24) },
+        Add("", Loc.T("Settings.AutoCheck"),
+            new (string, object)[] { (Loc.T("Common.Never"), 0), (Loc.T("Editor.EveryHours", 6), 6), (Loc.T("Editor.EveryHours", 12), 12), (Loc.T("Editor.EveryHours", 24), 24) },
             d.AutoCheckHours, current.AutoCheckHours, (o, v) => o.AutoCheckHours = (int?)v);
-        AddBool("", "Notifier les nouvelles mises à jour", d.NotifyUpdates, current.NotifyUpdates, (o, v) => o.NotifyUpdates = (bool?)v);
-        AddBool("", "Notifier si injoignable", d.NotifyOffline, current.NotifyOffline, (o, v) => o.NotifyOffline = (bool?)v);
-        Add("", "Terminal",
+        AddBool("", Loc.T("Settings.NotifyUpdates"), d.NotifyUpdates, current.NotifyUpdates, (o, v) => o.NotifyUpdates = (bool?)v);
+        AddBool("", Loc.T("Editor.OverrideNotifyOffline"), d.NotifyOffline, current.NotifyOffline, (o, v) => o.NotifyOffline = (bool?)v);
+        Add("", Loc.T("Settings.Terminal"),
             MainWindow.TerminalChoices().Select(c => (c.Label, (object)c.Mode)).ToArray(),
             d.Terminal, current.Terminal, (o, v) => o.Terminal = (TerminalMode?)v);
-        AddBool("", "Terminal directement en root", d.RootShell, current.RootShell, (o, v) => o.RootShell = (bool?)v);
-        Add("", "Type de mise à jour",
+        AddBool("", Loc.T("Editor.OverrideRootShell"), d.RootShell, current.RootShell, (o, v) => o.RootShell = (bool?)v);
+        Add("", Loc.T("Settings.UpgradeKind"),
             new (string, object)[] { ("upgrade", UpgradeKind.Upgrade), ("full-upgrade", UpgradeKind.FullUpgrade) },
             d.Upgrade, current.Upgrade, (o, v) => o.Upgrade = (UpgradeKind?)v);
-        AddBool("", "Nettoyer après la mise à jour (autoremove)", d.AutoRemove, current.AutoRemove, (o, v) => o.AutoRemove = (bool?)v);
+        AddBool("", Loc.T("Editor.OverrideAutoRemove"), d.AutoRemove, current.AutoRemove, (o, v) => o.AutoRemove = (bool?)v);
 
         void AddBool(string icon, string header, bool? global, bool? value, Action<ServerSettings, object?> apply) =>
             Add(icon, header, onOff, global, value, apply);
@@ -169,11 +168,11 @@ public partial class ServerEditWindow : Window
         {
             var combo = new ComboBox { Width = 210 };
             string globalLabel = options.FirstOrDefault(o => Equals(o.Value, global)).Label ?? global?.ToString() ?? "—";
-            combo.Items.Add(new ComboBoxItem { Content = $"Global ({globalLabel})", Tag = null });
+            combo.Items.Add(new ComboBoxItem { Content = Loc.T("Editor.Global", globalLabel), Tag = null });
             foreach (var (label, optionValue) in options)
                 combo.Items.Add(new ComboBoxItem { Content = label, Tag = optionValue });
             if (value is not null && options.All(o => !Equals(o.Value, value)))
-                combo.Items.Add(new ComboBoxItem { Content = value.ToString(), Tag = value });   // valeur saisie à la main dans le JSON
+                combo.Items.Add(new ComboBoxItem { Content = value.ToString(), Tag = value });   // value typed by hand in the JSON file
             combo.SelectedItem = combo.Items.OfType<ComboBoxItem>().FirstOrDefault(i => Equals(i.Tag, value)) ?? combo.Items[0];
 
             var card = new SettingCard { Icon = icon, Header = header, Content = combo, MinHeight = 56 };
@@ -185,9 +184,9 @@ public partial class ServerEditWindow : Window
         }
     }
 
-    // ===== Lecture du formulaire =====
+    // ===== Reading the form =====
 
-    /// <summary>Configuration et secrets saisis ; null (avec le champ fautif signalé) si invalides.</summary>
+    /// <summary>Configuration and secrets entered; null (with the faulty field flagged) when invalid.</summary>
     private (ServerConfig Config, ServerSecrets Secrets)? ReadForm()
     {
         foreach (var box in new[] { HostBox, PortBox, UserBox, KeyPathBox })
@@ -195,17 +194,17 @@ public partial class ServerEditWindow : Window
 
         string host = HostBox.Text.Trim();
         if (host.Length == 0 || host.Contains(' '))
-            return Invalid(HostBox, "Saisissez l'adresse IP ou le nom d'hôte du serveur.");
+            return Invalid(HostBox, Loc.T("Editor.InvalidHost"));
         if (!int.TryParse(PortBox.Text.Trim(), out int port) || port is < 1 or > 65535)
-            return Invalid(PortBox, "Le port doit être compris entre 1 et 65535.");
+            return Invalid(PortBox, Loc.T("Editor.InvalidPort"));
         string user = UserBox.Text.Trim();
         if (user.Length == 0 || user.Contains(' '))
-            return Invalid(UserBox, "Saisissez l'utilisateur SSH.");
+            return Invalid(UserBox, Loc.T("Editor.InvalidUser"));
 
         bool keyAuth = AuthKeyRadio.IsChecked == true;
         string keyPath = KeyPathBox.Text.Trim().Trim('"');
         if (keyAuth && !File.Exists(SshConnector.ExpandPath(keyPath)))
-            return Invalid(KeyPathBox, "Fichier de clé privée introuvable.");
+            return Invalid(KeyPathBox, Loc.T("Editor.KeyFileMissing"));
 
         var config = _config.Clone();
         config.Name = NameBox.Text.Trim();
@@ -226,7 +225,7 @@ public partial class ServerEditWindow : Window
             apply(overrides, (combo.SelectedItem as ComboBoxItem)?.Tag);
         config.Overrides = overrides;
 
-        // Le mot de passe de connexion est gardé même avec une clé : il peut servir à sudo
+        // The login password is kept even with a key: it may be used by sudo
         var secrets = new ServerSecrets
         {
             Password = NullIfEmpty(PasswordBox.Password),
@@ -239,7 +238,7 @@ public partial class ServerEditWindow : Window
             }
         };
         if (!keyAuth && secrets.Password is null)
-            return Invalid(PasswordBox, "Saisissez le mot de passe (ou choisissez une clé SSH).");
+            return Invalid(PasswordBox, Loc.T("Editor.PasswordMissing"));
         return (config, secrets);
     }
 
@@ -253,14 +252,14 @@ public partial class ServerEditWindow : Window
 
     private static string? NullIfEmpty(string s) => s.Length == 0 ? null : s;
 
-    // ===== Test, déploiement de clé, enregistrement =====
+    // ===== Test, key deployment, save =====
 
     private async void Test_Click(object sender, RoutedEventArgs e)
     {
         if (ReadForm() is not { } form)
             return;
         var (config, secrets) = form;
-        await RunBusyAsync("Connexion au serveur…", async () =>
+        await RunBusyAsync(Loc.T("Editor.Connecting"), async () =>
         {
             string message = await _app.Servers.TestConfigurationAsync(config, secrets);
             CopyHostKey(config);
@@ -275,14 +274,12 @@ public partial class ServerEditWindow : Window
         var (config, secrets) = form;
         string keyPath = SshKeys.DefaultKeyPath;
         bool exists = SshKeys.HasKeyPair(keyPath);
-        if (!Dialogs.Confirm(this, "Déployer ma clé SSH ?",
-                (exists ? $"Votre clé {keyPath}.pub" : $"Une nouvelle clé ed25519 ({keyPath}) va être créée, puis sa partie publique")
-                + $" sera ajoutée à ~/.ssh/authorized_keys de {config.Username} sur {config.Host}. " +
-                "La connexion par clé est ensuite vérifiée, puis la fiche passe en authentification par clé. Le mot de passe reste enregistré pour sudo.",
-                "Déployer"))
+        if (!Dialogs.Confirm(this, Loc.T("Editor.DeployTitle"),
+                Loc.T(exists ? "Editor.DeployExisting" : "Editor.DeployNew", keyPath, config.Username, config.Host),
+                Loc.T("Editor.DeployButton")))
             return;
 
-        await RunBusyAsync("Installation de la clé…", async () =>
+        await RunBusyAsync(Loc.T("Editor.InstallingKey"), async () =>
         {
             string message = await _app.Servers.DeployKeyAsync(config, secrets, keyPath);
             CopyHostKey(config);
@@ -291,7 +288,7 @@ public partial class ServerEditWindow : Window
             AuthKeyRadio.IsChecked = true;
             if (config.Elevation == ElevationMethod.Sudo && SudoSameSwitch.IsChecked == true)
             {
-                // Plus de mot de passe de connexion à réutiliser : il devient le mot de passe sudo
+                // No more login password to reuse: it becomes the sudo password
                 SudoSameSwitch.IsChecked = false;
                 SudoPasswordBox.Password = secrets.Password ?? "";
             }
@@ -299,7 +296,7 @@ public partial class ServerEditWindow : Window
         });
     }
 
-    /// <summary>Clé d'hôte approuvée pendant un test : conservée dans la fiche.</summary>
+    /// <summary>Host key approved during a test: kept in the server settings.</summary>
     private void CopyHostKey(ServerConfig tested)
     {
         _config.HostKeyFingerprint = tested.HostKeyFingerprint;

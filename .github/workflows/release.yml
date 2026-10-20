@@ -1,5 +1,5 @@
-# Release : pousser un tag v1.2.3 (ou v1.3.0-beta.1) construit l'installateur et les paquets de
-# mise à jour (Velopack), puis les publie sur GitHub Releases, où l'application les récupère.
+# Release: pushing a v1.2.3 (or v1.3.0-beta.1) tag builds the installer and the update packages
+# (Velopack), then publishes them on GitHub Releases, where the application fetches them.
 name: Release
 
 on:
@@ -41,8 +41,8 @@ jobs:
       - name: Restore tools (vpk)
         run: dotnet tool restore
 
-      # Version précédente : permet de générer le paquet delta (mise à jour de quelques Ko).
-      # Échoue sans conséquence pour la toute première release.
+      # Previous version: used to build the delta package (an update of a few KB).
+      # Fails harmlessly for the very first release.
       - name: Download previous release
         continue-on-error: true
         shell: pwsh
@@ -75,15 +75,15 @@ jobs:
           $body = @"
           ## Installation
 
-          | Fichier / File | |
+          | File | |
           |---|---|
-          | **VibeSSHMonitoring-win-Setup.exe** | Installateur (recommandé), installe pour l'utilisateur courant, sans droits administrateur, avec mises à jour automatiques. / Installer (recommended), per-user, no admin rights, automatic updates. |
-          | VibeSSHMonitoring-win-Portable.zip | Version portable : décompresser et lancer ``VibeSSHMonitoring.exe``. / Portable: extract and run ``VibeSSHMonitoring.exe``. |
+          | **VibeSSHMonitoring-win-Setup.exe** | Installer (recommended): installs for the current user, no administrator rights, automatic updates. |
+          | VibeSSHMonitoring-win-Portable.zip | Portable version: extract and run ``VibeSSHMonitoring.exe``. |
 
-          Déjà installé ? L'application se met à jour toute seule. / Already installed? The app updates itself.
-          Empreintes / Checksums: ``SHA256SUMS.txt``.
+          Already installed? The application updates itself.
+          Checksums: ``SHA256SUMS.txt``.
 
-          ## Changements / Changes
+          ## Changes
 
           $changes
           "@

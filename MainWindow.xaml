@@ -1,4 +1,4 @@
-<Window x:Class="VibeSSHMonitoring.MainWindow"
+﻿<Window x:Class="VibeSSHMonitoring.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:VibeSSHMonitoring.UI"
@@ -13,18 +13,18 @@
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
-        <!-- ===== Menu « ⋯ » des cartes ===== -->
+        <!-- ===== Card "⋯" menu ===== -->
         <ContextMenu x:Key="ServerMenu">
-            <MenuItem Header="Détails" Tag="&#xE946;" Click="MenuDetails_Click"/>
-            <MenuItem Header="Actualiser" Tag="&#xE72C;" Click="MenuRefresh_Click"/>
-            <MenuItem Header="Modifier…" Tag="&#xE70F;" Click="MenuEdit_Click"/>
-            <MenuItem Header="Dupliquer…" Tag="&#xE8C8;" Click="MenuDuplicate_Click"/>
+            <MenuItem Header="{ui:Tr Menu.Details}" Tag="&#xE946;" Click="MenuDetails_Click"/>
+            <MenuItem Header="{ui:Tr Common.Refresh}" Tag="&#xE72C;" Click="MenuRefresh_Click"/>
+            <MenuItem Header="{ui:Tr Menu.Edit}" Tag="&#xE70F;" Click="MenuEdit_Click"/>
+            <MenuItem Header="{ui:Tr Menu.Duplicate}" Tag="&#xE8C8;" Click="MenuDuplicate_Click"/>
             <Separator/>
-            <MenuItem Header="Redémarrer le serveur…" Tag="&#xE7E8;" Click="MenuReboot_Click"/>
-            <MenuItem Header="Supprimer…" Tag="&#xE74D;" Foreground="{StaticResource DangerBrush}" Click="MenuDelete_Click"/>
+            <MenuItem Header="{ui:Tr Menu.Reboot}" Tag="&#xE7E8;" Click="MenuReboot_Click"/>
+            <MenuItem Header="{ui:Tr Menu.Delete}" Tag="&#xE74D;" Foreground="{StaticResource DangerBrush}" Click="MenuDelete_Click"/>
         </ContextMenu>
 
-        <!-- ===== Ligne de jauge ===== -->
+        <!-- ===== Meter row ===== -->
         <Style x:Key="MeterLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Width" Value="44"/>
@@ -36,12 +36,12 @@
             <Setter Property="Margin" Value="10,0,0,0"/>
         </Style>
 
-        <!-- ===== Carte serveur ===== -->
+        <!-- ===== Server card ===== -->
         <DataTemplate x:Key="ServerCardTemplate">
             <Border x:Name="card" Style="{StaticResource Card}" Margin="0,0,12,12" Padding="16,14,16,12"
                     Cursor="Hand" MouseLeftButtonUp="Card_MouseLeftButtonUp">
                 <StackPanel>
-                    <!-- En-tête : sélection, état, nom, mises à jour -->
+                    <!-- Header: selection, state, name, updates -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -49,7 +49,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <CheckBox Style="{StaticResource SelectBox}" IsChecked="{Binding IsSelected}"
-                                  VerticalAlignment="Top" Margin="0,2,12,0" ToolTip="Sélectionner pour une action groupée"/>
+                                  VerticalAlignment="Top" Margin="0,2,12,0" ToolTip="{ui:Tr Card.SelectTip}"/>
                         <StackPanel Grid.Column="1" Margin="0,0,8,0">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="9" Height="9" Fill="{Binding StateBrush}" Margin="0,0,8,0"
@@ -68,7 +68,7 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- Groupes -->
+                    <!-- Groups -->
                     <ItemsControl ItemsSource="{Binding Tags}" Margin="30,8,0,0"
                                   Visibility="{Binding HasTags, Converter={StaticResource BoolToVisibility}}">
                         <ItemsControl.ItemsPanel>
@@ -85,15 +85,15 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Système -->
+                    <!-- System -->
                     <TextBlock Style="{StaticResource Caption}" Margin="30,8,0,0" TextTrimming="CharacterEllipsis"
                                Visibility="{Binding ShowSystem, Converter={StaticResource BoolToVisibility}}">
                         <Run Text="{Binding OsText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
-                        <Run Text="  ·  en service depuis"/>
+                        <Run Text="{ui:Tr Card.UpFor}"/>
                         <Run Text="{Binding UptimeText, Mode=OneWay}"/>
                     </TextBlock>
 
-                    <!-- Ressources -->
+                    <!-- Resources -->
                     <Grid Margin="30,10,0,0" Visibility="{Binding ShowResources, Converter={StaticResource BoolToVisibility}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -105,21 +105,21 @@
                             <RowDefinition Height="20"/>
                             <RowDefinition Height="20"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="CPU" Style="{StaticResource MeterLabel}"/>
+                        <TextBlock Text="{ui:Tr Meter.Cpu}" Style="{StaticResource MeterLabel}"/>
                         <ProgressBar Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding CpuPercent, Mode=OneWay}"
                                      Foreground="{Binding CpuBrush}"/>
                         <TextBlock Grid.Column="2" Text="{Binding CpuText}" Style="{StaticResource MeterValue}"/>
-                        <TextBlock Grid.Row="1" Text="RAM" Style="{StaticResource MeterLabel}"/>
+                        <TextBlock Grid.Row="1" Text="{ui:Tr Meter.Ram}" Style="{StaticResource MeterLabel}"/>
                         <ProgressBar Grid.Row="1" Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding MemPercent, Mode=OneWay}"
                                      Foreground="{Binding MemBrush}"/>
                         <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MemText}" Style="{StaticResource MeterValue}"/>
-                        <TextBlock Grid.Row="2" Text="Disque" Style="{StaticResource MeterLabel}"/>
+                        <TextBlock Grid.Row="2" Text="{ui:Tr Meter.Disk}" Style="{StaticResource MeterLabel}"/>
                         <ProgressBar Grid.Row="2" Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding DiskPercent, Mode=OneWay}"
                                      Foreground="{Binding DiskBrush}"/>
                         <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DiskText}" Style="{StaticResource MeterValue}"/>
                     </Grid>
 
-                    <!-- Mises à jour -->
+                    <!-- Updates -->
                     <WrapPanel Margin="30,10,0,0" Visibility="{Binding ShowUpdates, Converter={StaticResource BoolToVisibility}}">
                         <Border x:Name="updatesBadge" Style="{StaticResource NeutralBadge}" Margin="0,0,6,4" Padding="8,3"
                                 Visibility="{Binding HasUpdateInfo, Converter={StaticResource BoolToVisibility}}">
@@ -136,7 +136,7 @@
                                 <TextBlock Style="{StaticResource Icon}" Text="&#xEA18;" FontSize="11" Margin="0,0,6,0"
                                            Foreground="#FFFF8F8A"/>
                                 <TextBlock FontSize="12" Foreground="#FFFF8F8A">
-                                    <Run Text="{Binding SecurityCount, Mode=OneWay}"/><Run Text=" sécurité"/>
+                                    <Run Text="{Binding SecurityCount, Mode=OneWay}"/><Run Text="{ui:Tr Card.SecuritySuffix}"/>
                                 </TextBlock>
                             </StackPanel>
                         </Border>
@@ -145,12 +145,12 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="11" Margin="0,0,6,0"
                                            Foreground="{StaticResource WarningBrush}"/>
-                                <TextBlock Text="Redémarrage requis" FontSize="12" Foreground="{StaticResource WarningBrush}"/>
+                                <TextBlock Text="{ui:Tr Card.RebootRequired}" FontSize="12" Foreground="{StaticResource WarningBrush}"/>
                             </StackPanel>
                         </Border>
                     </WrapPanel>
 
-                    <!-- Opération en cours / dernier relevé -->
+                    <!-- Running operation / last reading -->
                     <StackPanel Orientation="Horizontal" Margin="30,6,0,0">
                         <Control Style="{StaticResource Spinner}" Width="12" Height="12" Margin="0,0,8,0"
                                  Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
@@ -158,19 +158,19 @@
                                    TextTrimming="CharacterEllipsis" MaxWidth="300" ToolTip="{Binding StateDetail}"/>
                     </StackPanel>
 
-                    <!-- Actions : passent à la ligne si la carte est étroite -->
+                    <!-- Actions: wrap when the card is narrow -->
                     <DockPanel Margin="0,12,0,0" LastChildFill="True">
                         <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="32" Height="30" Content="&#xE712;"
-                                FontSize="14" VerticalAlignment="Top" ToolTip="Plus d'actions" Click="More_Click"/>
+                                FontSize="14" VerticalAlignment="Top" ToolTip="{ui:Tr Common.MoreActions}" Click="More_Click"/>
                         <WrapPanel>
-                            <Button Style="{StaticResource SmallButton}" Tag="&#xE895;" Content="Check updates" Margin="0,0,6,6"
+                            <Button Style="{StaticResource SmallButton}" Tag="&#xE895;" Content="{ui:Tr Action.CheckUpdates}" Margin="0,0,6,6"
                                     IsEnabled="{Binding IsIdle}" Click="CheckUpdates_Click"
-                                    ToolTip="apt update, puis liste des paquets à mettre à jour"/>
-                            <Button Style="{StaticResource SmallAccentButton}" Tag="&#xE896;" Content="Update"
+                                    ToolTip="{ui:Tr Action.CheckUpdatesTip}"/>
+                            <Button Style="{StaticResource SmallAccentButton}" Tag="&#xE896;" Content="{ui:Tr Action.Update}"
                                     Margin="0,0,6,6" IsEnabled="{Binding IsIdle}" Click="Upgrade_Click"
-                                    ToolTip="apt update + upgrade (non interactif)"/>
-                            <Button Style="{StaticResource SmallButton}" Tag="&#xE756;" Content="Open SSH"
-                                    Margin="0,0,6,6" Click="OpenSsh_Click" ToolTip="Ouvrir un terminal sur ce serveur"/>
+                                    ToolTip="{ui:Tr Action.UpdateTip}"/>
+                            <Button Style="{StaticResource SmallButton}" Tag="&#xE756;" Content="{ui:Tr Action.OpenSsh}"
+                                    Margin="0,0,6,6" Click="OpenSsh_Click" ToolTip="{ui:Tr Action.OpenSshTip}"/>
                         </WrapPanel>
                     </DockPanel>
                 </StackPanel>
@@ -194,7 +194,7 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
-        <!-- ===== Tuile d'information (page de détail) ===== -->
+        <!-- ===== Info tile (details page) ===== -->
         <Style x:Key="InfoTile" TargetType="Border" BasedOn="{StaticResource Card}">
             <Setter Property="Margin" Value="0,0,8,8"/>
             <Setter Property="Padding" Value="14,12"/>
@@ -207,14 +207,14 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- ================= Menu latéral ================= -->
+        <!-- ================= Side menu ================= -->
         <Border x:Name="Sidebar" Width="240" ClipToBounds="True">
             <DockPanel Margin="8,4,8,12">
                 <Button x:Name="NavToggleButton" DockPanel.Dock="Top" Style="{StaticResource IconButton}"
                         Content="&#xE700;" HorizontalAlignment="Left" Margin="0,0,0,8"
-                        ToolTip="Réduire ou développer le menu" Click="NavToggleButton_Click"/>
+                        ToolTip="{ui:Tr Nav.ToggleTip}" Click="NavToggleButton_Click"/>
 
-                <!-- Pied : coffre et résumé, visibles depuis toutes les pages -->
+                <!-- Footer: vault and summary, visible from every page -->
                 <Border DockPanel.Dock="Bottom" Margin="0,8,0,0" Padding="0,12,0,0"
                         BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0">
                     <Grid Width="224" Height="40" HorizontalAlignment="Left">
@@ -226,7 +226,7 @@
                                      Stroke="{StaticResource BaseBrush}" StrokeThickness="2" Fill="{StaticResource NeutralBrush}"/>
                         </Grid>
                         <StackPanel Margin="48,0,44,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="SidebarSummaryText" Text="Aucun serveur" FontSize="13"
+                            <TextBlock x:Name="SidebarSummaryText" Text="{ui:Tr Summary.NoServer}" FontSize="13"
                                        FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                             <TextBlock x:Name="SidebarVaultText" FontSize="12" Margin="0,1,0,0"
                                        Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
@@ -236,20 +236,20 @@
                     </Grid>
                 </Border>
 
-                <!-- Mise à jour de l'application prête : visible depuis toutes les pages -->
+                <!-- Application update ready: visible from every page -->
                 <Button x:Name="SidebarUpdateButton" DockPanel.Dock="Bottom" Style="{StaticResource SidebarAction}"
                         Tag="&#xE777;" Visibility="Collapsed" Click="AppUpdateInstall_Click"/>
 
                 <RadioButton x:Name="NavSettings" DockPanel.Dock="Bottom" Style="{StaticResource NavItem}"
-                             Tag="&#xE713;" Content="Paramètres" ToolTip="Paramètres (Ctrl+3)" Checked="Nav_Checked"/>
+                             Tag="&#xE713;" Content="{ui:Tr Nav.Settings}" ToolTip="{ui:Tr Nav.SettingsTip}" Checked="Nav_Checked"/>
 
                 <StackPanel>
                     <RadioButton x:Name="NavServers" Style="{StaticResource NavItem}"
-                                 Tag="&#xE977;" Content="Serveurs" ToolTip="Serveurs (Ctrl+1)" Checked="Nav_Checked"/>
+                                 Tag="&#xE977;" Content="{ui:Tr Nav.Servers}" ToolTip="{ui:Tr Nav.ServersTip}" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavTerminals" Style="{StaticResource NavItem}"
-                                 Tag="&#xE756;" ToolTip="Terminaux (Ctrl+2)" Checked="Nav_Checked">
+                                 Tag="&#xE756;" ToolTip="{ui:Tr Nav.TerminalsTip}" Checked="Nav_Checked">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Terminaux" VerticalAlignment="Center"/>
+                            <TextBlock Text="{ui:Tr Nav.Terminals}" VerticalAlignment="Center"/>
                             <Border x:Name="TerminalCountBadge" Style="{StaticResource Badge}" Margin="10,0,0,0" Visibility="Collapsed">
                                 <TextBlock x:Name="TerminalCountText" FontSize="11" Foreground="{StaticResource AccentLightBrush}"/>
                             </Border>
@@ -259,7 +259,7 @@
             </DockPanel>
         </Border>
 
-        <!-- ================= Contenu ================= -->
+        <!-- ================= Content ================= -->
         <Border Grid.Column="1" Background="{StaticResource LayerBrush}" BorderBrush="{StaticResource StrokeBrush}"
                 BorderThickness="1,1,0,0" CornerRadius="8,0,0,0" ClipToBounds="True">
             <Grid>
@@ -267,22 +267,22 @@
                               Focusable="False" SizeChanged="PageScroller_SizeChanged">
                     <Grid x:Name="PageHost" MaxWidth="1240" Margin="36,28,36,36">
 
-                        <!-- ========== Serveurs ========== -->
+                        <!-- ========== Servers ========== -->
                         <StackPanel x:Name="ServersPage">
                             <Grid>
                                 <StackPanel>
-                                    <TextBlock Text="Serveurs" Style="{StaticResource PageTitle}"/>
+                                    <TextBlock Text="{ui:Tr Nav.Servers}" Style="{StaticResource PageTitle}"/>
                                     <TextBlock x:Name="ServersSubtitle" Style="{StaticResource PageSubtitle}" Margin="0,0,0,20"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,0,0">
-                                    <Button Tag="&#xE72C;" Content="Tout actualiser" Margin="0,0,8,0" Click="RefreshAll_Click"
-                                            ToolTip="Relevé immédiat de tous les serveurs"/>
-                                    <Button Style="{StaticResource AccentButton}" Tag="&#xE710;" Content="Ajouter un serveur"
+                                    <Button Tag="&#xE72C;" Content="{ui:Tr Servers.RefreshAll}" Margin="0,0,8,0" Click="RefreshAll_Click"
+                                            ToolTip="{ui:Tr Servers.RefreshAllTip}"/>
+                                    <Button Style="{StaticResource AccentButton}" Tag="&#xE710;" Content="{ui:Tr Servers.Add}"
                                             Click="AddServer_Click"/>
                                 </StackPanel>
                             </Grid>
 
-                            <!-- Recherche et filtres par groupe -->
+                            <!-- Search and group filters -->
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="260"/>
@@ -292,48 +292,48 @@
                                     <TextBox x:Name="SearchBox" Padding="34,0,10,0" TextChanged="SearchBox_TextChanged"/>
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" FontSize="13" Margin="12,0,0,0"
                                                Foreground="{StaticResource TextTertiaryBrush}" IsHitTestVisible="False"/>
-                                    <TextBlock x:Name="SearchHint" Text="Rechercher (nom, adresse, groupe)" Margin="35,0,0,0"
+                                    <TextBlock x:Name="SearchHint" Text="{ui:Tr Servers.SearchHint}" Margin="35,0,0,0"
                                                VerticalAlignment="Center" FontSize="13" IsHitTestVisible="False"
                                                Foreground="{StaticResource TextTertiaryBrush}"/>
                                 </Grid>
                                 <WrapPanel x:Name="TagFilters" Grid.Column="1" Margin="12,2,0,0"/>
                             </Grid>
 
-                            <!-- Barre d'actions groupées -->
+                            <!-- Bulk action bar -->
                             <Border x:Name="SelectionBar" Style="{StaticResource Card}" Background="{StaticResource CardSelectedBrush}"
                                     BorderBrush="{StaticResource AccentBrush}" Padding="14,8" Margin="0,0,0,12" Visibility="Collapsed">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock x:Name="SelectionText" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                                        <Button Style="{StaticResource LinkButton}" Content="Tout sélectionner" Margin="0,0,14,0"
+                                        <Button Style="{StaticResource LinkButton}" Content="{ui:Tr Selection.All}" Margin="0,0,14,0"
                                                 Click="SelectAll_Click"/>
-                                        <Button Style="{StaticResource LinkButton}" Content="Désélectionner" Click="ClearSelection_Click"/>
+                                        <Button Style="{StaticResource LinkButton}" Content="{ui:Tr Selection.None}" Click="ClearSelection_Click"/>
                                     </StackPanel>
                                     <WrapPanel HorizontalAlignment="Right">
-                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE72C;" Content="Actualiser" Margin="6,2,0,2"
+                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE72C;" Content="{ui:Tr Common.Refresh}" Margin="6,2,0,2"
                                                 Click="BulkRefresh_Click"/>
-                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE895;" Content="Check updates" Margin="6,2,0,2"
+                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE895;" Content="{ui:Tr Action.CheckUpdates}" Margin="6,2,0,2"
                                                 Click="BulkCheck_Click"/>
-                                        <Button Style="{StaticResource SmallAccentButton}" Tag="&#xE896;" Content="Update" Margin="6,2,0,2"
+                                        <Button Style="{StaticResource SmallAccentButton}" Tag="&#xE896;" Content="{ui:Tr Action.Update}" Margin="6,2,0,2"
                                                 Click="BulkUpgrade_Click"/>
-                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE7E8;" Content="Redémarrer" Margin="6,2,0,2"
+                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE7E8;" Content="{ui:Tr Action.Reboot}" Margin="6,2,0,2"
                                                 Click="BulkReboot_Click"/>
                                     </WrapPanel>
                                 </DockPanel>
                             </Border>
 
-                            <!-- État vide -->
+                            <!-- Empty state -->
                             <Border x:Name="EmptyState" Style="{StaticResource Card}" Padding="28,32" Visibility="Collapsed">
                                 <StackPanel HorizontalAlignment="Center">
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xE977;" FontSize="40" HorizontalAlignment="Center"
                                                Foreground="{StaticResource AccentLightBrush}" Margin="0,0,0,16"/>
-                                    <TextBlock x:Name="EmptyTitle" Text="Aucun serveur pour l'instant" FontSize="18" FontWeight="SemiBold"
+                                    <TextBlock x:Name="EmptyTitle" Text="{ui:Tr Empty.NoServersTitle}" FontSize="18" FontWeight="SemiBold"
                                                HorizontalAlignment="Center"/>
                                     <TextBlock x:Name="EmptyText" Style="{StaticResource Caption}" FontSize="13" Margin="0,6,0,18"
                                                TextAlignment="Center" MaxWidth="460"
-                                               Text="Ajoutez un VPS ou un serveur dédié (Debian / Ubuntu) : adresse, utilisateur et mot de passe ou clé SSH."/>
+                                               Text="{ui:Tr Empty.NoServersText}"/>
                                     <Button x:Name="EmptyAddButton" Style="{StaticResource AccentButton}" Tag="&#xE710;"
-                                            Content="Ajouter un serveur" HorizontalAlignment="Center" Click="AddServer_Click"/>
+                                            Content="{ui:Tr Servers.Add}" HorizontalAlignment="Center" Click="AddServer_Click"/>
                                 </StackPanel>
                             </Border>
 
@@ -346,13 +346,13 @@
                             </ItemsControl>
                         </StackPanel>
 
-                        <!-- ========== Détail d'un serveur ========== -->
+                        <!-- ========== Server details ========== -->
                         <StackPanel x:Name="DetailPage" Visibility="Collapsed">
                             <Button Style="{StaticResource LinkButton}" HorizontalAlignment="Left" Margin="0,0,0,14"
                                     Click="BackToServers_Click">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xE72B;" FontSize="12" Margin="0,0,8,0"/>
-                                    <TextBlock Text="Serveurs"/>
+                                    <TextBlock Text="{ui:Tr Nav.Servers}"/>
                                 </StackPanel>
                             </Button>
 
@@ -377,29 +377,29 @@
                                     </TextBlock>
                                 </StackPanel>
                                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12,4,0,0" MaxWidth="560">
-                                    <Button Tag="&#xE72C;" Content="Actualiser" Margin="0,0,8,8" IsEnabled="{Binding IsIdle}"
+                                    <Button Tag="&#xE72C;" Content="{ui:Tr Common.Refresh}" Margin="0,0,8,8" IsEnabled="{Binding IsIdle}"
                                             Click="DetailRefresh_Click"/>
-                                    <Button Tag="&#xE895;" Content="Check updates" Margin="0,0,8,8" IsEnabled="{Binding IsIdle}"
+                                    <Button Tag="&#xE895;" Content="{ui:Tr Action.CheckUpdates}" Margin="0,0,8,8" IsEnabled="{Binding IsIdle}"
                                             Click="CheckUpdates_Click"/>
-                                    <Button Style="{StaticResource AccentButton}" Tag="&#xE896;" Content="Update" Margin="0,0,8,8"
+                                    <Button Style="{StaticResource AccentButton}" Tag="&#xE896;" Content="{ui:Tr Action.Update}" Margin="0,0,8,8"
                                             IsEnabled="{Binding IsIdle}" Click="Upgrade_Click"/>
-                                    <Button Tag="&#xE756;" Content="Open SSH" Margin="0,0,8,8" Click="OpenSsh_Click"/>
+                                    <Button Tag="&#xE756;" Content="{ui:Tr Action.OpenSsh}" Margin="0,0,8,8" Click="OpenSsh_Click"/>
                                     <Button Style="{StaticResource IconButton}" Content="&#xE712;" Margin="0,0,0,8"
-                                            ToolTip="Plus d'actions" Click="More_Click"/>
+                                            ToolTip="{ui:Tr Common.MoreActions}" Click="More_Click"/>
                                 </WrapPanel>
                             </Grid>
 
-                            <!-- Bandeau d'erreur -->
+                            <!-- Error banner -->
                             <Border x:Name="DetailProblem" Style="{StaticResource Card}" Background="#1FF2615C" BorderBrush="#55F2615C"
                                     Margin="0,0,0,16" Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}">
                                 <DockPanel>
                                     <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE7BA;"
                                                Foreground="{StaticResource WarningBrush}" VerticalAlignment="Top" Margin="0,1,12,0"/>
                                     <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
-                                        <Button x:Name="ApproveKeyButton" Content="Vérifier et approuver la clé" Click="ApproveKey_Click"
+                                        <Button x:Name="ApproveKeyButton" Content="{ui:Tr Detail.ApproveKey}" Click="ApproveKey_Click"
                                                 Visibility="Collapsed"/>
-                                        <Button x:Name="UnlockButton" Content="Déverrouiller" Click="Unlock_Click" Visibility="Collapsed"/>
-                                        <Button x:Name="FixButton" Content="Modifier le serveur" Click="MenuEdit_Click" Visibility="Collapsed"/>
+                                        <Button x:Name="UnlockButton" Content="{ui:Tr Detail.Unlock}" Click="Unlock_Click" Visibility="Collapsed"/>
+                                        <Button x:Name="FixButton" Content="{ui:Tr Detail.EditServer}" Click="MenuEdit_Click" Visibility="Collapsed"/>
                                     </WrapPanel>
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="{Binding StateText}" FontWeight="SemiBold"/>
@@ -408,47 +408,47 @@
                                 </DockPanel>
                             </Border>
 
-                            <TextBlock Text="Système" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
+                            <TextBlock Text="{ui:Tr Detail.System}" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
                             <UniformGrid x:Name="DetailInfoGrid" Columns="3" Margin="0,0,-8,0">
                                 <Border Style="{StaticResource InfoTile}">
                                     <StackPanel>
-                                        <TextBlock Text="Système" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Detail.Os}" Style="{StaticResource Caption}"/>
                                         <TextBlock Text="{Binding OsText}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource InfoTile}">
                                     <StackPanel>
-                                        <TextBlock Text="Noyau" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Detail.Kernel}" Style="{StaticResource Caption}"/>
                                         <TextBlock Text="{Binding KernelText}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource InfoTile}">
                                     <StackPanel>
-                                        <TextBlock Text="Nom d'hôte" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Detail.Hostname}" Style="{StaticResource Caption}"/>
                                         <TextBlock Text="{Binding HostnameText}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource InfoTile}">
                                     <StackPanel>
-                                        <TextBlock Text="En service depuis" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Detail.Uptime}" Style="{StaticResource Caption}"/>
                                         <TextBlock Text="{Binding UptimeText}" FontWeight="SemiBold" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource InfoTile}">
                                     <StackPanel>
-                                        <TextBlock Text="Charge (1, 5, 15 min)" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Detail.Load}" Style="{StaticResource Caption}"/>
                                         <TextBlock Text="{Binding LoadText}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource InfoTile}">
                                     <StackPanel>
-                                        <TextBlock Text="Swap" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Detail.Swap}" Style="{StaticResource Caption}"/>
                                         <TextBlock Text="{Binding SwapText}" FontWeight="SemiBold" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </UniformGrid>
 
-                            <TextBlock Text="Ressources" Style="{StaticResource SectionHeader}" Margin="2,16,0,8"/>
+                            <TextBlock Text="{ui:Tr Detail.Resources}" Style="{StaticResource SectionHeader}" Margin="2,16,0,8"/>
                             <Border Style="{StaticResource Card}" Padding="18,14">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -461,15 +461,15 @@
                                         <RowDefinition Height="28"/>
                                         <RowDefinition Height="28"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Text="CPU" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{ui:Tr Meter.Cpu}" VerticalAlignment="Center"/>
                                     <ProgressBar Grid.Column="1" Style="{StaticResource Meter}" Height="8"
                                                  Value="{Binding CpuPercent, Mode=OneWay}" Foreground="{Binding CpuBrush}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding CpuText}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Row="1" Text="Mémoire" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="1" Text="{ui:Tr Detail.Memory}" VerticalAlignment="Center"/>
                                     <ProgressBar Grid.Row="1" Grid.Column="1" Style="{StaticResource Meter}" Height="8"
                                                  Value="{Binding MemPercent, Mode=OneWay}" Foreground="{Binding MemBrush}"/>
                                     <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MemText}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Row="2" Text="Disque /" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="2" Text="{ui:Tr Detail.DiskRoot}" VerticalAlignment="Center"/>
                                     <ProgressBar Grid.Row="2" Grid.Column="1" Style="{StaticResource Meter}" Height="8"
                                                  Value="{Binding DiskPercent, Mode=OneWay}" Foreground="{Binding DiskBrush}"/>
                                     <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DiskText}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
@@ -479,7 +479,7 @@
                             <Grid Margin="0,16,0,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource SectionHeader}" Margin="2,0,0,2">
-                                        <Run Text="Mises à jour disponibles"/>
+                                        <Run Text="{ui:Tr Detail.AvailableUpdates}"/>
                                         <Run Text="{Binding UpdatesText, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Normal"/>
                                     </TextBlock>
                                     <TextBlock Text="{Binding LastCheckText}" Style="{StaticResource Caption}" Margin="2,0,0,8"/>
@@ -488,7 +488,7 @@
                             <Border Style="{StaticResource Card}" Padding="0">
                                 <Grid>
                                     <TextBlock x:Name="NoPackagesText" Style="{StaticResource Caption}" FontSize="13" Margin="18,16"
-                                               Text="Aucune mise à jour en attente. « Check updates » rafraîchit la liste depuis les dépôts."/>
+                                               Text="{ui:Tr Detail.NoPackages}"/>
                                     <ItemsControl x:Name="PackagesList" ItemsSource="{Binding Packages}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -502,7 +502,7 @@
                                                         <StackPanel Orientation="Horizontal">
                                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                                             <Border x:Name="secBadge" Style="{StaticResource DangerBadge}" Margin="8,0,0,0" Visibility="Collapsed">
-                                                                <TextBlock Text="sécurité" FontSize="11" Foreground="#FFFF8F8A"/>
+                                                                <TextBlock Text="{ui:Tr Detail.SecurityBadge}" FontSize="11" Foreground="#FFFF8F8A"/>
                                                             </Border>
                                                         </StackPanel>
                                                         <TextBlock Grid.Column="1" FontFamily="{StaticResource MonoFont}" FontSize="12"
@@ -527,40 +527,52 @@
                             </Border>
 
                             <Grid Margin="0,16,0,8">
-                                <TextBlock Text="Journal des opérations" Style="{StaticResource SectionHeader}" Margin="2,0,0,0"/>
-                                <Button Style="{StaticResource SmallButton}" Tag="&#xE74D;" Content="Effacer" HorizontalAlignment="Right"
+                                <TextBlock Text="{ui:Tr Detail.Log}" Style="{StaticResource SectionHeader}" Margin="2,0,0,0"/>
+                                <Button Style="{StaticResource SmallButton}" Tag="&#xE74D;" Content="{ui:Tr Detail.ClearLog}" HorizontalAlignment="Right"
                                         Click="ClearLog_Click"/>
                             </Grid>
                             <TextBox x:Name="LogBox" Style="{StaticResource ConsoleBox}" Height="340"
                                      Text="{Binding LogText, Mode=OneWay}"/>
                         </StackPanel>
 
-                        <!-- ========== Paramètres ========== -->
+                        <!-- ========== Settings ========== -->
                         <StackPanel x:Name="SettingsPage" Visibility="Collapsed" MaxWidth="900" HorizontalAlignment="Left">
-                            <TextBlock Text="Paramètres" Style="{StaticResource PageTitle}"/>
-                            <TextBlock Text="Réglages globaux. Chaque serveur peut remplacer ceux de la supervision, du terminal et des mises à jour dans sa fiche."
+                            <TextBlock Text="{ui:Tr Nav.Settings}" Style="{StaticResource PageTitle}"/>
+                            <TextBlock Text="{ui:Tr Settings.Subtitle}"
                                        Style="{StaticResource PageSubtitle}"/>
 
-                            <!-- Sécurité -->
-                            <TextBlock Text="Sécurité" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
-                            <ui:SettingCard x:Name="StorageCard" Icon="&#xE72E;" Header="Stockage des mots de passe">
+                            <!-- General -->
+                            <TextBlock Text="{ui:Tr Settings.General}" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
+                            <ui:SettingCard x:Name="LanguageCard" Icon="&#xE774;" Header="{ui:Tr Settings.Language}"
+                                            Description="{ui:Tr Settings.LanguageDesc}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="LanguageRestartButton" Style="{StaticResource AccentButton}" Tag="&#xE72C;"
+                                            Content="{ui:Tr Settings.LanguageRestart}" Margin="0,0,12,0" Visibility="Collapsed"
+                                            Click="LanguageRestart_Click"/>
+                                    <ComboBox x:Name="LanguageCombo" Width="230"/>
+                                </StackPanel>
+                            </ui:SettingCard>
+
+                            <!-- Security -->
+                            <TextBlock Text="{ui:Tr Settings.Security}" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard x:Name="StorageCard" Icon="&#xE72E;" Header="{ui:Tr Settings.Storage}">
                                 <Border Style="{StaticResource SegmentedHost}">
                                     <StackPanel x:Name="StorageSegments" Orientation="Horizontal">
-                                        <RadioButton Style="{StaticResource Segment}" Tag="Dpapi" Content="Windows"/>
-                                        <RadioButton Style="{StaticResource Segment}" Tag="MasterPassword" Content="Mot de passe maître"/>
-                                        <RadioButton Style="{StaticResource Segment}" Tag="PlainText" Content="En clair"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="Dpapi" Content="{ui:Tr Settings.StorageDpapi}"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="MasterPassword" Content="{ui:Tr Settings.StorageMaster}"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="PlainText" Content="{ui:Tr Settings.StoragePlain}"/>
                                     </StackPanel>
                                 </Border>
                             </ui:SettingCard>
-                            <ui:SettingCard x:Name="MasterPasswordCard" Header="Mot de passe maître" Margin="38,0,0,4"
-                                            Description="Change le mot de passe qui chiffre le coffre.">
-                                <Button Content="Changer…" Click="ChangeMasterPassword_Click"/>
+                            <ui:SettingCard x:Name="MasterPasswordCard" Header="{ui:Tr Settings.StorageMaster}" Margin="38,0,0,4"
+                                            Description="{ui:Tr Settings.MasterPasswordDesc}">
+                                <Button Content="{ui:Tr Settings.Change}" Click="ChangeMasterPassword_Click"/>
                             </ui:SettingCard>
-                            <ui:SettingCard x:Name="AutoLockCard" Header="Verrouillage automatique" Margin="38,0,0,4"
-                                            Description="Oublie les mots de passe après une période sans activité. Les serveurs qui en ont besoin passent en « Coffre verrouillé ».">
+                            <ui:SettingCard x:Name="AutoLockCard" Header="{ui:Tr Settings.AutoLock}" Margin="38,0,0,4"
+                                            Description="{ui:Tr Settings.AutoLockDesc}">
                                 <Border Style="{StaticResource SegmentedHost}">
                                     <StackPanel x:Name="AutoLockSegments" Orientation="Horizontal">
-                                        <RadioButton Style="{StaticResource Segment}" Tag="0" Content="Jamais"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="0" Content="{ui:Tr Common.Never}"/>
                                         <RadioButton Style="{StaticResource Segment}" Tag="15" Content="15 min"/>
                                         <RadioButton Style="{StaticResource Segment}" Tag="60" Content="1 h"/>
                                         <RadioButton Style="{StaticResource Segment}" Tag="240" Content="4 h"/>
@@ -569,44 +581,44 @@
                             </ui:SettingCard>
 
                             <!-- Terminal -->
-                            <TextBlock Text="Terminal" Style="{StaticResource SectionHeader}"/>
-                            <ui:SettingCard Icon="&#xE756;" Header="Terminal pour « Open SSH »"
-                                            Description="Intégré : onglets dans l'application, mot de passe saisi automatiquement. Externe : client OpenSSH de Windows.">
+                            <TextBlock Text="{ui:Tr Settings.Terminal}" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE756;" Header="{ui:Tr Settings.TerminalFor}"
+                                            Description="{ui:Tr Settings.TerminalDesc}">
                                 <ComboBox x:Name="TerminalCombo" Width="230"/>
                             </ui:SettingCard>
-                            <ui:SettingCard x:Name="CustomTerminalCard" Header="Commande personnalisée" Margin="38,0,0,4"
-                                            Description="Variables : {host} {port} {user} {name} {keyopt} (option -i de la clé) {ssh} (chemin de ssh.exe).">
+                            <ui:SettingCard x:Name="CustomTerminalCard" Header="{ui:Tr Settings.CustomCommand}" Margin="38,0,0,4"
+                                            Description="{ui:Tr Settings.CustomCommandDesc}">
                                 <TextBox x:Name="CustomTerminalBox" Width="340" FontFamily="{StaticResource MonoFont}" FontSize="12"
                                          LostFocus="CustomTerminalBox_LostFocus"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE8C8;" Header="Copier le mot de passe pour les terminaux externes"
-                                            Description="ssh.exe ne peut pas recevoir le mot de passe : il est placé dans le presse-papiers (hors historique Win+V) et effacé après 30 s.">
+                            <ui:SettingCard Icon="&#xE8C8;" Header="{ui:Tr Settings.CopyPassword}"
+                                            Description="{ui:Tr Settings.CopyPasswordDesc}">
                                 <CheckBox x:Name="CopyPasswordSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE7EF;" Header="Ouvrir le terminal directement en root"
-                                            Description="Lance sudo -i ou su - à l'ouverture (terminal intégré : le mot de passe est saisi pour vous).">
+                            <ui:SettingCard Icon="&#xE7EF;" Header="{ui:Tr Settings.RootShell}"
+                                            Description="{ui:Tr Settings.RootShellDesc}">
                                 <CheckBox x:Name="RootShellSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
 
-                            <!-- Supervision -->
-                            <TextBlock Text="Supervision" Style="{StaticResource SectionHeader}"/>
-                            <ui:SettingCard Icon="&#xE701;" Header="En ligne / hors ligne et latence"
-                                            Description="Test du port SSH avant chaque relevé.">
+                            <!-- Monitoring -->
+                            <TextBlock Text="{ui:Tr Settings.Monitoring}" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE701;" Header="{ui:Tr Settings.ShowOnline}"
+                                            Description="{ui:Tr Settings.ShowOnlineDesc}">
                                 <CheckBox x:Name="ShowOnlineSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE9D9;" Header="Ressources"
-                                            Description="Utilisation CPU, mémoire et disque (/), charge système.">
+                            <ui:SettingCard Icon="&#xE9D9;" Header="{ui:Tr Detail.Resources}"
+                                            Description="{ui:Tr Settings.ShowResourcesDesc}">
                                 <CheckBox x:Name="ShowResourcesSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE7F8;" Header="Informations système"
-                                            Description="Distribution, noyau, nom d'hôte, durée de fonctionnement.">
+                            <ui:SettingCard Icon="&#xE7F8;" Header="{ui:Tr Settings.ShowSystem}"
+                                            Description="{ui:Tr Settings.ShowSystemDesc}">
                                 <CheckBox x:Name="ShowSystemSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE896;" Header="Mises à jour"
-                                            Description="Nombre de paquets à mettre à jour (dont sécurité) et « redémarrage requis ».">
+                            <ui:SettingCard Icon="&#xE896;" Header="{ui:Tr Settings.ShowUpdates}"
+                                            Description="{ui:Tr Settings.ShowUpdatesDesc}">
                                 <CheckBox x:Name="ShowUpdatesSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE72C;" Header="Fréquence des relevés">
+                            <ui:SettingCard Icon="&#xE72C;" Header="{ui:Tr Settings.RefreshInterval}">
                                 <Border Style="{StaticResource SegmentedHost}">
                                     <StackPanel x:Name="RefreshSegments" Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource Segment}" Tag="30" Content="30 s"/>
@@ -616,28 +628,28 @@
                                     </StackPanel>
                                 </Border>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE895;" Header="Recherche automatique des mises à jour"
-                                            Description="Lance « Check updates » (apt update, en root) en arrière-plan à cet intervalle.">
+                            <ui:SettingCard Icon="&#xE895;" Header="{ui:Tr Settings.AutoCheck}"
+                                            Description="{ui:Tr Settings.AutoCheckDesc}">
                                 <Border Style="{StaticResource SegmentedHost}">
                                     <StackPanel x:Name="AutoCheckSegments" Orientation="Horizontal">
-                                        <RadioButton Style="{StaticResource Segment}" Tag="0" Content="Jamais"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="0" Content="{ui:Tr Common.Never}"/>
                                         <RadioButton Style="{StaticResource Segment}" Tag="6" Content="6 h"/>
                                         <RadioButton Style="{StaticResource Segment}" Tag="12" Content="12 h"/>
                                         <RadioButton Style="{StaticResource Segment}" Tag="24" Content="24 h"/>
                                     </StackPanel>
                                 </Border>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xEA8F;" Header="Notifier les nouvelles mises à jour">
+                            <ui:SettingCard Icon="&#xEA8F;" Header="{ui:Tr Settings.NotifyUpdates}">
                                 <CheckBox x:Name="NotifyUpdatesSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE7BA;" Header="Notifier quand un serveur ne répond plus">
+                            <ui:SettingCard Icon="&#xE7BA;" Header="{ui:Tr Settings.NotifyOffline}">
                                 <CheckBox x:Name="NotifyOfflineSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
 
-                            <!-- Mises à jour -->
-                            <TextBlock Text="Mises à jour des serveurs (« Update »)" Style="{StaticResource SectionHeader}"/>
-                            <ui:SettingCard Icon="&#xE896;" Header="Type de mise à jour"
-                                            Description="upgrade ne supprime jamais de paquet et retient les paquets « held back » (souvent le noyau). full-upgrade les installe, en retirant si nécessaire des paquets.">
+                            <!-- Server updates -->
+                            <TextBlock Text="{ui:Tr Settings.ServerUpdates}" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE896;" Header="{ui:Tr Settings.UpgradeKind}"
+                                            Description="{ui:Tr Settings.UpgradeKindDesc}">
                                 <Border Style="{StaticResource SegmentedHost}">
                                     <StackPanel x:Name="UpgradeSegments" Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource Segment}" Tag="Upgrade" Content="upgrade"/>
@@ -645,35 +657,34 @@
                                     </StackPanel>
                                 </Border>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE74D;" Header="Nettoyer après la mise à jour"
-                                            Description="apt-get autoremove --purge : retire les dépendances devenues inutiles (anciens noyaux…).">
+                            <ui:SettingCard Icon="&#xE74D;" Header="{ui:Tr Settings.AutoRemove}"
+                                            Description="{ui:Tr Settings.AutoRemoveDesc}">
                                 <CheckBox x:Name="AutoRemoveSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
 
-                            <!-- Application -->
-                            <!-- Mises à jour de l'application (GitHub Releases) -->
-                            <TextBlock Text="Mises à jour de l'application" Style="{StaticResource SectionHeader}"/>
+                            <!-- Application updates (GitHub Releases) -->
+                            <TextBlock Text="{ui:Tr Settings.AppUpdates}" Style="{StaticResource SectionHeader}"/>
                             <ui:SettingCard x:Name="AppUpdateCard" Icon="&#xE777;" Header="Vibe SSH Monitoring">
                                 <StackPanel Orientation="Horizontal">
                                     <Control x:Name="AppUpdateSpinner" Style="{StaticResource Spinner}" Margin="0,0,12,0"
                                              Visibility="Collapsed"/>
-                                    <Button x:Name="AppUpdateCheckButton" Tag="&#xE72C;" Content="Rechercher"
+                                    <Button x:Name="AppUpdateCheckButton" Tag="&#xE72C;" Content="{ui:Tr AppUpdate.Check}"
                                             Click="AppUpdateCheck_Click"/>
                                     <Button x:Name="AppUpdateInstallButton" Style="{StaticResource AccentButton}" Tag="&#xE777;"
-                                            Content="Redémarrer et mettre à jour" Visibility="Collapsed"
+                                            Content="{ui:Tr AppUpdate.RestartInstall}" Visibility="Collapsed"
                                             Click="AppUpdateInstall_Click"/>
                                 </StackPanel>
                             </ui:SettingCard>
-                            <ui:SettingCard x:Name="AppUpdateAutoCheckCard" Icon="&#xE895;" Header="Rechercher automatiquement"
-                                            Description="Au démarrage puis toutes les 12 h, sur les Releases GitHub du projet. La nouvelle version est téléchargée en arrière-plan.">
+                            <ui:SettingCard x:Name="AppUpdateAutoCheckCard" Icon="&#xE895;" Header="{ui:Tr AppUpdate.AutoCheck}"
+                                            Description="{ui:Tr AppUpdate.AutoCheckDesc}">
                                 <CheckBox x:Name="AppUpdateCheckSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard x:Name="AppUpdateAutoInstallCard" Icon="&#xE896;" Header="Installer automatiquement"
-                                            Description="Une version téléchargée s'installe à la fermeture de l'application (ou au démarrage suivant). Sinon, utilisez « Redémarrer et mettre à jour ».">
+                            <ui:SettingCard x:Name="AppUpdateAutoInstallCard" Icon="&#xE896;" Header="{ui:Tr AppUpdate.AutoInstall}"
+                                            Description="{ui:Tr AppUpdate.AutoInstallDesc}">
                                 <CheckBox x:Name="AppUpdateAutoInstallSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard x:Name="AppUpdatePrereleaseCard" Icon="&#xE9D9;" Header="Inclure les préversions"
-                                            Description="Reçoit aussi les versions bêta, pour tester les nouveautés en avance (moins stables).">
+                            <ui:SettingCard x:Name="AppUpdatePrereleaseCard" Icon="&#xE9D9;" Header="{ui:Tr AppUpdate.Prerelease}"
+                                            Description="{ui:Tr AppUpdate.PrereleaseDesc}">
                                 <CheckBox x:Name="AppUpdatePrereleaseSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
                             <Border x:Name="AppUpdateNotesCard" Style="{StaticResource Card}" Background="{StaticResource InsetBrush}"
@@ -684,30 +695,30 @@
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Text="Application" Style="{StaticResource SectionHeader}"/>
-                            <ui:SettingCard Icon="&#xE7E8;" Header="Démarrer avec Windows">
+                            <TextBlock Text="{ui:Tr Settings.Application}" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE7E8;" Header="{ui:Tr Settings.StartWithWindows}">
                                 <CheckBox x:Name="StartupSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE73F;" Header="Démarrer masqué"
-                                            Description="S'ouvre directement dans la zone de notification ; la supervision tourne en fond.">
+                            <ui:SettingCard Icon="&#xE73F;" Header="{ui:Tr Settings.StartMinimized}"
+                                            Description="{ui:Tr Settings.StartMinimizedDesc}">
                                 <CheckBox x:Name="MinimizedSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE711;" Header="Fermer dans la zone de notification"
-                                            Description="Le bouton ✕ masque la fenêtre au lieu de quitter. Pour quitter, utilisez le menu de l'icône.">
+                            <ui:SettingCard Icon="&#xE711;" Header="{ui:Tr Settings.CloseToTray}"
+                                            Description="{ui:Tr Settings.CloseToTrayDesc}">
                                 <CheckBox x:Name="CloseToTraySwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
 
-                            <TextBlock Text="À propos" Style="{StaticResource SectionHeader}"/>
+                            <TextBlock Text="{ui:Tr Settings.About}" Style="{StaticResource SectionHeader}"/>
                             <ui:SettingCard x:Name="AboutCard" Icon="&#xE946;" Header="Vibe SSH Monitoring">
-                                <Button Tag="&#xE8B7;" Content="Dossier de configuration" Click="OpenConfigFolder_Click"/>
+                                <Button Tag="&#xE8B7;" Content="{ui:Tr Settings.ConfigFolder}" Click="OpenConfigFolder_Click"/>
                             </ui:SettingCard>
-                            <ui:SettingCard Icon="&#xE765;" Header="Raccourcis clavier"
-                                            Description="Ctrl+1 à Ctrl+3 : changer de page   ·   Ctrl+N : ajouter un serveur   ·   F5 : tout actualiser   ·   Terminal : Ctrl+C/Ctrl+V, clic droit = copier/coller"/>
+                            <ui:SettingCard Icon="&#xE765;" Header="{ui:Tr Settings.Shortcuts}"
+                                            Description="{ui:Tr Settings.ShortcutsDesc}"/>
                         </StackPanel>
                     </Grid>
                 </ScrollViewer>
 
-                <!-- ========== Terminaux (hors défilement : le terminal occupe toute la place) ========== -->
+                <!-- ========== Terminals (outside the scroller: the terminal fills the whole area) ========== -->
                 <Grid x:Name="TerminalsPage" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -716,7 +727,7 @@
                     <Border BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,0,0,1" Padding="10,8,10,8">
                         <DockPanel>
                             <Button x:Name="NewTerminalButton" DockPanel.Dock="Right" Style="{StaticResource SmallButton}"
-                                    Tag="&#xE710;" Content="Nouveau" Click="NewTerminal_Click" ToolTip="Ouvrir un terminal sur un serveur"/>
+                                    Tag="&#xE710;" Content="{ui:Tr Terminals.New}" Click="NewTerminal_Click" ToolTip="{ui:Tr Terminals.NewTip}"/>
                             <ListBox x:Name="TerminalTabs" Style="{StaticResource TabStrip}" SelectionChanged="TerminalTabs_SelectionChanged">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
@@ -725,7 +736,7 @@
                                             <TextBlock Text="{Binding Title}" FontSize="13" VerticalAlignment="Center" MaxWidth="200"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <Button Style="{StaticResource IconButton}" Width="24" Height="24" FontSize="10"
-                                                    Content="&#xE711;" Margin="6,0,0,0" ToolTip="Fermer" Click="CloseTerminal_Click"/>
+                                                    Content="&#xE711;" Margin="6,0,0,0" ToolTip="{ui:Tr Common.Close}" Click="CloseTerminal_Click"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -736,15 +747,15 @@
                     <StackPanel x:Name="NoTerminalState" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE756;" FontSize="40" HorizontalAlignment="Center"
                                    Foreground="{StaticResource AccentLightBrush}" Margin="0,0,0,16"/>
-                        <TextBlock Text="Aucun terminal ouvert" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{ui:Tr Terminals.EmptyTitle}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                         <TextBlock Style="{StaticResource Caption}" FontSize="13" Margin="0,6,0,18" TextAlignment="Center"
-                                   Text="Utilisez « Open SSH » sur un serveur, ou ouvrez-en un ici."/>
-                        <Button Style="{StaticResource AccentButton}" Tag="&#xE710;" Content="Nouveau terminal"
+                                   Text="{ui:Tr Terminals.EmptyText}"/>
+                        <Button Style="{StaticResource AccentButton}" Tag="&#xE710;" Content="{ui:Tr Terminals.NewTerminal}"
                                 HorizontalAlignment="Center" Click="NewTerminal_Click"/>
                     </StackPanel>
                 </Grid>
 
-                <!-- Message éphémère -->
+                <!-- Short-lived message -->
                 <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24"
                         Background="#FF26262F" BorderBrush="#FF34343F" BorderThickness="1" CornerRadius="8"
                         Padding="16,10" Opacity="0" IsHitTestVisible="False" MaxWidth="560">

@@ -9,8 +9,8 @@ using System.Windows.Threading;
 namespace VibeSSHMonitoring.UI;
 
 /// <summary>
-/// Presse-papiers. Les secrets y restent 30 s au plus et sont exclus de l'historique
-/// (Win+V) et de la synchronisation cloud de Windows.
+/// Clipboard. Secrets stay there for 30 s at most and are excluded from the Windows clipboard
+/// history (Win+V) and cloud sync.
 /// </summary>
 public static class ClipboardHelper
 {
@@ -33,7 +33,7 @@ public static class ClipboardHelper
         _clearTimer.Tick += (_, _) =>
         {
             _clearTimer.Stop();
-            // N'efface que si l'utilisateur n'a rien copié d'autre entre-temps
+            // Only clears it if the user has not copied anything else in the meantime
             TryClipboard(() =>
             {
                 if (Clipboard.ContainsText() && Clipboard.GetText() == _secret)
@@ -53,7 +53,7 @@ public static class ClipboardHelper
         return text;
     }
 
-    /// <summary>Le presse-papiers peut être tenu par une autre application : quelques essais.</summary>
+    /// <summary>The clipboard may be held by another application: a few attempts.</summary>
     private static bool TryClipboard(Action action)
     {
         for (int attempt = 0; attempt < 5; attempt++)

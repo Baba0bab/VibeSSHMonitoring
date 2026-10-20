@@ -18,7 +18,7 @@ using VibeSSHMonitoring.UI;
 
 namespace VibeSSHMonitoring;
 
-/// <summary>Onglet du terminal intégré.</summary>
+/// <summary>Built-in terminal tab.</summary>
 public sealed class TerminalTab : ObservableObject
 {
     public TerminalView View { get; }
@@ -49,7 +49,7 @@ public partial class MainWindow : Window
     public static readonly DependencyProperty CardWidthProperty =
         DependencyProperty.Register(nameof(CardWidth), typeof(double), typeof(MainWindow), new PropertyMetadata(360.0));
 
-    /// <summary>Largeur des cartes : la grille remplit la page avec autant de colonnes que possible.</summary>
+    /// <summary>Card width: the grid fills the page with as many columns as possible.</summary>
     public double CardWidth
     {
         get => (double)GetValue(CardWidthProperty);
@@ -91,7 +91,7 @@ public partial class MainWindow : Window
         _terminals.CollectionChanged += (_, _) => SyncTerminalCount();
         _toastTimer.Tick += (_, _) => HideToast();
 
-        AboutCard.Description = $"Version {typeof(App).Assembly.GetName().Version?.ToString(3)} · supervision de serveurs Debian / Ubuntu en SSH · licence GPL-3.0";
+        AboutCard.Description = Loc.T("Settings.AboutDesc", typeof(App).Assembly.GetName().Version?.ToString(3));
         InitializeSettings();
         RebuildTagFilters();
         SyncEmptyState();
@@ -130,7 +130,7 @@ public partial class MainWindow : Window
             _navItems[index].IsChecked = true;
     }
 
-    /// <summary>0 = serveurs (ou leur détail), 1 = terminaux, 2 = paramètres.</summary>
+    /// <summary>0 = servers (or their details), 1 = terminals, 2 = settings.</summary>
     private void ShowPage(int index, bool animate = true, bool detail = false)
     {
         _page = index;
@@ -199,12 +199,12 @@ public partial class MainWindow : Window
 
     private void PageScroller_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateCardWidth();
 
-    /// <summary>Largeur des cartes calculée sur la zone visible (hors barre de défilement).</summary>
+    /// <summary>Card width computed on the visible area (without the scroll bar).</summary>
     private void UpdateCardWidth()
     {
         double viewport = PageScroller.ViewportWidth > 0 ? PageScroller.ViewportWidth : PageScroller.ActualWidth - 12;
         double available = Math.Min(PageHost.MaxWidth, viewport - PageHost.Margin.Left - PageHost.Margin.Right)
-                           + 12;   // 12 = marge droite de chaque carte, compensée par la marge négative de la liste
+                           + 12;   // 12 = right margin of each card, offset by the list's negative margin
         if (available <= 0)
             return;
         int columns = Math.Max(1, (int)(available / (MinCardWidth + 12)));
@@ -240,7 +240,7 @@ public partial class MainWindow : Window
         }
     }
 
-    // ===== Liste des serveurs =====
+    // ===== Server list =====
 
     private void OnServersChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -302,7 +302,7 @@ public partial class MainWindow : Window
         TagFilters.Children.Clear();
         if (tags.Count == 0)
             return;
-        AddChip("Tous", null);
+        AddChip(Loc.T("Filter.All"), null);
         foreach (var tag in tags)
             AddChip(tag, tag);
 
@@ -331,10 +331,8 @@ public partial class MainWindow : Window
         bool none = _app.Servers.Servers.Count == 0;
         bool filteredOut = !none && _serversView.IsEmpty;
         EmptyState.Visibility = none || filteredOut ? Visibility.Visible : Visibility.Collapsed;
-        EmptyTitle.Text = none ? "Aucun serveur pour l'instant" : "Aucun serveur ne correspond";
-        EmptyText.Text = none
-            ? "Ajoutez un VPS ou un serveur dédié (Debian / Ubuntu) : adresse, utilisateur et mot de passe ou clé SSH."
-            : "Modifiez la recherche ou le groupe sélectionné.";
+        EmptyTitle.Text = Loc.T(none ? "Empty.NoServersTitle" : "Empty.NoMatchTitle");
+        EmptyText.Text = Loc.T(none ? "Empty.NoServersText" : "Empty.NoMatchText");
         EmptyAddButton.Visibility = none ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -344,7 +342,7 @@ public partial class MainWindow : Window
     {
         int count = _app.Servers.Servers.Count(s => s.IsSelected);
         SelectionBar.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        SelectionText.Text = count == 1 ? "1 serveur sélectionné" : $"{count} serveurs sélectionnés";
+        SelectionText.Text = count == 1 ? Loc.T("Selection.One") : Loc.T("Selection.Many", count);
     }
 
     private void SelectAll_Click(object sender, RoutedEventArgs e)
@@ -359,7 +357,7 @@ public partial class MainWindow : Window
             vm.IsSelected = false;
     }
 
-    /// <summary>Clic sur la carte (hors boutons et case à cocher) : ouvre le détail.</summary>
+    /// <summary>Click on the card (outside buttons and check box): opens the details.</summary>
     private void Card_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (e.Handled || IsInside<ButtonBase>(e.OriginalSource as DependencyObject))
@@ -384,7 +382,7 @@ public partial class MainWindow : Window
     private static ServerViewModel? ServerOf(object sender) =>
         (sender as FrameworkElement)?.DataContext as ServerViewModel;
 
-    // ===== Détail =====
+    // ===== Details =====
 
     private void ShowDetail(ServerViewModel vm)
     {
@@ -429,10 +427,10 @@ public partial class MainWindow : Window
         NoPackagesText.Visibility = _detail.Packages.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_detail.Packages.Count == 0)
             NoPackagesText.Text = _detail.NoApt
-                ? "apt-get est introuvable : ce serveur n'est pas une Debian / Ubuntu."
+                ? Loc.T("Detail.NoApt")
                 : _detail.UpdateCount is null
-                    ? "Liste inconnue pour l'instant : « Check updates » interroge les dépôts."
-                    : "Aucune mise à jour en attente. « Check updates » rafraîchit la liste depuis les dépôts.";
+                    ? Loc.T("Detail.PackagesUnknown")
+                    : Loc.T("Detail.NoPackages");
         ApproveKeyButton.Visibility = _detail.State is ServerState.HostKeyUnknown or ServerState.HostKeyChanged
             ? Visibility.Visible : Visibility.Collapsed;
         UnlockButton.Visibility = _detail.State == ServerState.Locked ? Visibility.Visible : Visibility.Collapsed;
@@ -450,7 +448,7 @@ public partial class MainWindow : Window
     private void ApproveKey_Click(object sender, RoutedEventArgs e)
     {
         if (_detail is not null)
-            _ = _app.Servers.RefreshNowAsync(_detail);   // la connexion propose l'empreinte à approuver
+            _ = _app.Servers.RefreshNowAsync(_detail);   // the connection offers the fingerprint for approval
     }
 
     private async void Unlock_Click(object sender, RoutedEventArgs e) => await _app.UnlockInteractiveAsync();
@@ -471,13 +469,12 @@ public partial class MainWindow : Window
             return;
         string verb = vm.Settings.Upgrade == UpgradeKind.FullUpgrade ? "full-upgrade" : "upgrade";
         string packages = vm.UpdateCount is > 0
-            ? $"{vm.UpdatesText}{(vm.SecurityCount > 0 ? $" ({vm.UpdatesDetail})" : "")} connue(s) à ce jour."
-            : "La liste des paquets sera rafraîchie juste avant.";
-        if (!Dialogs.Confirm(this, $"Mettre à jour {vm.Name} ?",
-                $"apt-get update puis apt-get {verb}, sans interaction (les fichiers de configuration modifiés sont conservés). {packages}",
-                "Mettre à jour"))
+            ? Loc.T("Upgrade.KnownPackages", vm.UpdatesText + (vm.SecurityCount > 0 ? $" ({vm.UpdatesDetail})" : ""))
+            : Loc.T("Upgrade.ListRefreshed");
+        if (!Dialogs.Confirm(this, Loc.T("Upgrade.ConfirmTitle", vm.Name), Loc.T("Upgrade.ConfirmText", verb, packages),
+                Loc.T("Upgrade.ConfirmButton")))
             return;
-        ShowDetail(vm);   // pour suivre le journal en direct
+        ShowDetail(vm);   // to follow the log live
         await _app.Servers.UpgradeAsync(vm);
     }
 
@@ -526,9 +523,8 @@ public partial class MainWindow : Window
     {
         if (ServerOf(sender) is not { } vm)
             return;
-        if (Dialogs.Confirm(this, $"Redémarrer {vm.Name} ?",
-                "Le serveur sera indisponible pendant quelques instants. Les sessions ouvertes dessus seront coupées.",
-                "Redémarrer", danger: true))
+        if (Dialogs.Confirm(this, Loc.T("Reboot.ConfirmTitle", vm.Name), Loc.T("Reboot.ConfirmText"),
+                Loc.T("Action.Reboot"), danger: true))
             await _app.Servers.RebootAsync(vm);
     }
 
@@ -536,9 +532,8 @@ public partial class MainWindow : Window
     {
         if (ServerOf(sender) is not { } vm)
             return;
-        if (Dialogs.Confirm(this, $"Supprimer {vm.Name} ?",
-                "Le serveur et ses identifiants enregistrés seront retirés de l'application. Rien n'est modifié sur le serveur.",
-                "Supprimer", danger: true))
+        if (Dialogs.Confirm(this, Loc.T("Delete.ConfirmTitle", vm.Name), Loc.T("Delete.ConfirmText"),
+                Loc.T("Delete.Button"), danger: true))
             _app.Servers.Remove(vm);
     }
 
@@ -554,22 +549,21 @@ public partial class MainWindow : Window
     private void BulkUpgrade_Click(object sender, RoutedEventArgs e)
     {
         var servers = SelectedServers;
-        if (Dialogs.Confirm(this, $"Mettre à jour {servers.Count} serveur(s) ?",
-                "apt-get update puis upgrade sur chaque serveur, quatre à la fois. Suivez la progression sur les cartes, et le détail dans le journal de chaque serveur.",
-                "Tout mettre à jour", detail: string.Join("\n", servers.Select(s => $"• {s.Name} — {s.UpdatesText}"))))
+        if (Dialogs.Confirm(this, Loc.T("BulkUpgrade.ConfirmTitle", servers.Count), Loc.T("BulkUpgrade.ConfirmText"),
+                Loc.T("BulkUpgrade.Button"), detail: string.Join("\n", servers.Select(s => $"• {s.Name} — {s.UpdatesText}"))))
             _ = _app.Servers.RunForAllAsync(servers, vm => _app.Servers.UpgradeAsync(vm));
     }
 
     private void BulkReboot_Click(object sender, RoutedEventArgs e)
     {
         var servers = SelectedServers;
-        if (Dialogs.Confirm(this, $"Redémarrer {servers.Count} serveur(s) ?",
-                "Chaque serveur sera indisponible quelques instants.", "Tout redémarrer", danger: true,
+        if (Dialogs.Confirm(this, Loc.T("BulkReboot.ConfirmTitle", servers.Count), Loc.T("BulkReboot.ConfirmText"),
+                Loc.T("BulkReboot.Button"), danger: true,
                 detail: string.Join("\n", servers.Select(s => $"• {s.Name}"))))
             _ = _app.Servers.RunForAllAsync(servers, vm => _app.Servers.RebootAsync(vm));
     }
 
-    // ===== Ajout / modification =====
+    // ===== Add / edit =====
 
     private async void AddServer_Click(object sender, RoutedEventArgs e) => await EditServerAsync(null, duplicate: false);
 
@@ -584,7 +578,7 @@ public partial class MainWindow : Window
         if (duplicate)
         {
             config.Id = Guid.NewGuid();
-            config.Name = $"{config.DisplayName} (copie)";
+            config.Name = Loc.T("Editor.CopyName", config.DisplayName);
             config.HostKeyFingerprint = null;
             config.HostKeyType = null;
             config.LastUpdateCheckUtc = null;
@@ -608,7 +602,7 @@ public partial class MainWindow : Window
             ShowDetail(vm);
     }
 
-    // ===== Terminaux intégrés =====
+    // ===== Built-in terminals =====
 
     public void OpenTerminal(ServerConfig server)
     {
@@ -645,7 +639,7 @@ public partial class MainWindow : Window
     {
         if (_app.Servers.Servers.Count == 0)
         {
-            Dialogs.Info(this, "Aucun serveur", "Ajoutez d'abord un serveur dans la page Serveurs.");
+            Dialogs.Info(this, Loc.T("Summary.NoServer"), Loc.T("Terminals.AddServerFirst"));
             return;
         }
         var menu = new ContextMenu();
@@ -675,7 +669,7 @@ public partial class MainWindow : Window
         _terminals.Clear();
     }
 
-    // ===== Résumé, coffre =====
+    // ===== Summary, vault =====
 
     internal void SyncSummary()
     {
@@ -688,17 +682,17 @@ public partial class MainWindow : Window
 
         int updates = servers.Sum(s => s.UpdateCount ?? 0);
         int reboot = servers.Count(s => s.RebootRequired);
-        var parts = new List<string> { servers.Count == 1 ? "1 serveur" : $"{servers.Count} serveurs" };
+        var parts = new List<string> { servers.Count == 1 ? Loc.T("Summary.OneServer") : Loc.T("Summary.Servers", servers.Count) };
         if (servers.Count > 0)
-            parts.Add($"{servers.Count(s => s.IsOnline)} en ligne");
+            parts.Add(Loc.T("Summary.OnlineCount", servers.Count(s => s.IsOnline)));
         if (offline > 0)
-            parts.Add($"{offline} hors ligne");
+            parts.Add(Loc.T("Summary.OfflineCount", offline));
         if (problems - offline > 0)
-            parts.Add($"{problems - offline} en erreur");
+            parts.Add(Loc.T("Summary.ErrorCount", problems - offline));
         if (updates > 0)
-            parts.Add($"{updates} mise{(updates > 1 ? "s" : "")} à jour en attente");
+            parts.Add(updates == 1 ? Loc.T("Summary.PendingOne") : Loc.T("Summary.PendingMany", updates));
         if (reboot > 0)
-            parts.Add($"{reboot} à redémarrer");
+            parts.Add(Loc.T("Summary.RebootCount", reboot));
         ServersSubtitle.Text = string.Join(" · ", parts);
     }
 
@@ -710,28 +704,28 @@ public partial class MainWindow : Window
         SidebarVaultIcon.Foreground = (Brush)FindResource(vault.IsLocked ? "WarningBrush" : "TextSecondaryBrush");
         SidebarVaultText.Text = vault.Mode switch
         {
-            StorageMode.MasterPassword => vault.IsLocked ? "Coffre verrouillé" : "Coffre déverrouillé",
-            StorageMode.PlainText => "Mots de passe en clair",
-            _ => "Coffre Windows"
+            StorageMode.MasterPassword => Loc.T(vault.IsLocked ? "Vault.StatusLocked" : "Vault.StatusUnlocked"),
+            StorageMode.PlainText => Loc.T("Vault.StatusPlain"),
+            _ => Loc.T("Vault.StatusWindows")
         };
         SidebarVaultHost.ToolTip = vault.Mode switch
         {
-            StorageMode.MasterPassword => "Mots de passe chiffrés par le mot de passe maître (Argon2id + AES-256-GCM)",
-            StorageMode.PlainText => "Mots de passe stockés en clair dans le fichier secrets.json",
-            _ => "Mots de passe chiffrés par Windows (DPAPI), liés à votre session"
+            StorageMode.MasterPassword => Loc.T("Vault.TipMaster"),
+            StorageMode.PlainText => Loc.T("Vault.TipPlain"),
+            _ => Loc.T("Vault.TipWindows")
         };
         SidebarLockButton.Visibility = master ? Visibility.Visible : Visibility.Collapsed;
         SidebarLockButton.Content = vault.IsLocked ? "" : "";
-        SidebarLockButton.ToolTip = vault.IsLocked ? "Déverrouiller le coffre" : "Verrouiller le coffre";
+        SidebarLockButton.ToolTip = Loc.T(vault.IsLocked ? "Vault.UnlockTitle" : "Tray.Lock");
 
         MasterPasswordCard.Visibility = master ? Visibility.Visible : Visibility.Collapsed;
         AutoLockCard.Visibility = master ? Visibility.Visible : Visibility.Collapsed;
         MasterPasswordCard.IsEnabled = !vault.IsLocked;
         StorageCard.Description = vault.Mode switch
         {
-            StorageMode.MasterPassword => "Chiffrés avec votre mot de passe maître (Argon2id + AES-256-GCM), demandé au démarrage.",
-            StorageMode.PlainText => "⚠ Lisibles par toute personne ou tout programme ayant accès à votre dossier %APPDATA%.",
-            _ => "Chiffrés par Windows et liés à votre session : rien à saisir, illisibles depuis un autre compte ou un autre PC."
+            StorageMode.MasterPassword => Loc.T("Settings.StorageMasterDesc"),
+            StorageMode.PlainText => Loc.T("Settings.StoragePlainDesc"),
+            _ => Loc.T("Settings.StorageDpapiDesc")
         };
         _updatingUi = true;
         CheckSegment(StorageSegments, vault.Mode.ToString());
@@ -760,12 +754,29 @@ public partial class MainWindow : Window
         Toast.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(300)));
     }
 
-    // ===== Paramètres =====
+    // ===== Settings =====
 
     private void InitializeSettings()
     {
         var config = _app.Config;
         var d = config.Defaults;
+
+        // Language: "System" first, then each language in its own name
+        string systemLanguage = Loc.Languages.First(l => l.Code == Loc.Resolve(Loc.SystemLanguage)).NativeName;
+        LanguageCombo.Items.Add(new ComboBoxItem { Content = Loc.T("Settings.LanguageSystem", systemLanguage), Tag = Loc.SystemLanguage });
+        foreach (var (code, name) in Loc.Languages)
+            LanguageCombo.Items.Add(new ComboBoxItem { Content = name, Tag = code });
+        LanguageCombo.SelectedItem = LanguageCombo.Items.OfType<ComboBoxItem>()
+            .FirstOrDefault(i => (string)i.Tag == config.Language) ?? LanguageCombo.Items[0];
+        LanguageCombo.SelectionChanged += (_, _) =>
+        {
+            if (_updatingUi || LanguageCombo.SelectedItem is not ComboBoxItem { Tag: string code })
+                return;
+            config.Language = code;
+            config.Save();
+            // The restart is only useful if the displayed language actually changes
+            LanguageRestartButton.Visibility = Loc.Resolve(code) != Loc.Language ? Visibility.Visible : Visibility.Collapsed;
+        };
 
         BindSegments(StorageSegments, _app.Vault.Mode.ToString(), tag => _ = ChangeStorageModeAsync(Enum.Parse<StorageMode>(tag)));
         BindSegments(AutoLockSegments, config.AutoLockMinutes.ToString(), tag =>
@@ -822,7 +833,7 @@ public partial class MainWindow : Window
         BindSwitch(AppUpdatePrereleaseSwitch, config.AppUpdatePrerelease, v => _app.SetAppUpdatePrerelease(v));
     }
 
-    // ===== Mises à jour de l'application =====
+    // ===== Application updates =====
 
     internal void SyncAppUpdate()
     {
@@ -831,16 +842,13 @@ public partial class MainWindow : Window
         AppUpdateCard.Header = $"Vibe SSH Monitoring {updater.CurrentVersion}";
         AppUpdateCard.Description = updater.State switch
         {
-            AppUpdateState.Unavailable =>
-                "Mises à jour automatiques indisponibles : cette copie n'a pas été installée avec l'installateur (version de développement).",
-            AppUpdateState.Checking => "Recherche d'une nouvelle version…",
-            AppUpdateState.Downloading => $"Téléchargement de la version {version}… {updater.Progress} %",
-            AppUpdateState.Ready => _app.Config.AppUpdateAutoInstall
-                ? $"Version {version} téléchargée : elle sera installée à la fermeture de l'application."
-                : $"Version {version} téléchargée, prête à être installée.",
-            AppUpdateState.UpToDate => $"Vous avez la dernière version · vérifié {Format.Ago(updater.LastCheckUtc ?? DateTime.UtcNow)}",
-            AppUpdateState.Error => $"Recherche impossible : {updater.Error}",
-            _ => updater.IsPortable ? "Version portable · pas encore vérifié." : "Pas encore vérifié."
+            AppUpdateState.Unavailable => Loc.T("AppUpdate.Unavailable"),
+            AppUpdateState.Checking => Loc.T("AppUpdate.Checking"),
+            AppUpdateState.Downloading => Loc.T("AppUpdate.Downloading", version, updater.Progress),
+            AppUpdateState.Ready => Loc.T(_app.Config.AppUpdateAutoInstall ? "AppUpdate.ReadyAuto" : "AppUpdate.ReadyNoAuto", version),
+            AppUpdateState.UpToDate => Loc.T("AppUpdate.UpToDate", Format.Ago(updater.LastCheckUtc ?? DateTime.UtcNow)),
+            AppUpdateState.Error => Loc.T("AppUpdate.Error", updater.Error),
+            _ => Loc.T(updater.IsPortable ? "AppUpdate.NotCheckedPortable" : "AppUpdate.NotChecked")
         };
 
         bool installed = updater.IsInstalled;
@@ -855,27 +863,29 @@ public partial class MainWindow : Window
         AppUpdateInstallButton.Visibility = ready ? Visibility.Visible : Visibility.Collapsed;
 
         SidebarUpdateButton.Visibility = ready ? Visibility.Visible : Visibility.Collapsed;
-        SidebarUpdateButton.Content = $"Mettre à jour ({version})";
-        SidebarUpdateButton.ToolTip = $"Vibe SSH Monitoring {version} est prête : redémarrer pour l'installer";
+        SidebarUpdateButton.Content = Loc.T("AppUpdate.SidebarButton", version);
+        SidebarUpdateButton.ToolTip = Loc.T("AppUpdate.SidebarTip", version);
 
         string notes = PlainNotes(updater.ReleaseNotes);
         AppUpdateNotesCard.Visibility = ready && notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-        AppUpdateNotesTitle.Text = $"Nouveautés de la version {version}";
+        AppUpdateNotesTitle.Text = Loc.T("AppUpdate.NotesTitle", version);
         AppUpdateNotesText.Text = notes;
     }
 
-    /// <summary>Notes de version (Markdown) en texte simple, pour l'aperçu dans les paramètres.</summary>
+    /// <summary>Release notes (Markdown) as plain text, for the preview in the settings.</summary>
     private static string PlainNotes(string? markdown)
     {
         if (string.IsNullOrWhiteSpace(markdown))
             return "";
         var lines = markdown.Replace("\r", "").Split('\n')
             .Select(l => l.TrimEnd().TrimStart('#', ' ').Replace("**", "").Replace("`", ""))
-            // Titre « [1.0.1] - date » (déjà affiché) et liens de référence « [1.0.1]: https://… »
+            // "[1.0.1] - date" heading (already shown) and reference links "[1.0.1]: https://…"
             .Where(l => !l.StartsWith('[') && !l.StartsWith('|') && !l.StartsWith("---"))
             .Select(l => l.StartsWith("- ") ? "•  " + l[2..] : l);
         return string.Join("\n", lines).Trim();
     }
+
+    private void LanguageRestart_Click(object sender, RoutedEventArgs e) => _app.Restart();
 
     private void AppUpdateCheck_Click(object sender, RoutedEventArgs e) => _ = _app.Updater.CheckAndDownloadAsync();
 
@@ -883,12 +893,12 @@ public partial class MainWindow : Window
 
     public static IEnumerable<(TerminalMode Mode, string Label)> TerminalChoices()
     {
-        yield return (TerminalMode.Embedded, "Intégré (onglets)");
+        yield return (TerminalMode.Embedded, Loc.T("Terminal.Embedded"));
         yield return (TerminalMode.WindowsTerminal, "Windows Terminal");
         yield return (TerminalMode.PowerShell, "PowerShell");
-        yield return (TerminalMode.Cmd, "Invite de commandes");
-        yield return (TerminalMode.PuTTY, ExternalTerminal.FindPutty() is null ? "PuTTY (non détecté)" : "PuTTY");
-        yield return (TerminalMode.Custom, "Personnalisé…");
+        yield return (TerminalMode.Cmd, Loc.T("Terminal.Cmd"));
+        yield return (TerminalMode.PuTTY, ExternalTerminal.FindPutty() is null ? Loc.T("Terminal.PuttyMissing") : "PuTTY");
+        yield return (TerminalMode.Custom, Loc.T("Terminal.Custom"));
     }
 
     private void SaveDefaults()
@@ -946,18 +956,16 @@ public partial class MainWindow : Window
             switch (mode)
             {
                 case StorageMode.MasterPassword:
-                    Dialogs.Password(this, "Définir le mot de passe maître",
-                        "Il chiffrera les identifiants de vos serveurs et sera demandé à chaque démarrage. Il ne peut pas être récupéré : notez-le en lieu sûr.",
+                    Dialogs.Password(this, Loc.T("Vault.SetTitle"), Loc.T("Vault.SetText"),
                         confirm: true, async pw =>
                         {
                             await Task.Run(() => vault.ChangeMode(StorageMode.MasterPassword, pw));
                             return null;
-                        }, okText: "Chiffrer");
+                        }, okText: Loc.T("Vault.SetButton"));
                     break;
                 case StorageMode.PlainText:
-                    if (Dialogs.Confirm(this, "Stocker les mots de passe en clair ?",
-                            "Toute personne ou tout programme ayant accès à votre session pourra les lire dans secrets.json. Le mode Windows (DPAPI) est aussi transparent, sans ce risque.",
-                            "Stocker en clair", danger: true))
+                    if (Dialogs.Confirm(this, Loc.T("Vault.PlainTitle"), Loc.T("Vault.PlainText"),
+                            Loc.T("Vault.PlainButton"), danger: true))
                         vault.ChangeMode(StorageMode.PlainText);
                     break;
                 default:
@@ -967,7 +975,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            Dialogs.Info(this, "Changement impossible", ex.Message, error: true);
+            Dialogs.Info(this, Loc.T("Vault.ChangeFailed"), ex.Message, error: true);
         }
         finally
         {
@@ -982,14 +990,14 @@ public partial class MainWindow : Window
         var vault = _app.Vault;
         if (vault.IsLocked && !await _app.UnlockInteractiveAsync())
             return;
-        string? changed = Dialogs.Password(this, "Nouveau mot de passe maître", "Le coffre sera rechiffré avec ce mot de passe.",
+        string? changed = Dialogs.Password(this, Loc.T("Vault.NewTitle"), Loc.T("Vault.NewText"),
             confirm: true, async pw =>
             {
                 await Task.Run(() => vault.ChangeMode(StorageMode.MasterPassword, pw));
                 return null;
-            }, okText: "Changer");
+            }, okText: Loc.T("Vault.NewButton"));
         if (changed is not null)
-            ShowToast("Mot de passe maître modifié.");
+            ShowToast(Loc.T("Vault.Changed"));
     }
 
     private void OpenConfigFolder_Click(object sender, RoutedEventArgs e)

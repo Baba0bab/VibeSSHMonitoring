@@ -7,9 +7,9 @@ using Renci.SshNet;
 namespace VibeSSHMonitoring.Core;
 
 /// <summary>
-/// Session interactive du terminal intégré : connexion dédiée (indépendante de la supervision),
-/// shell avec PTY xterm-256color. Peut passer root automatiquement (sudo -i / su -) en
-/// répondant elle-même à l'invite de mot de passe.
+/// Interactive session of the built-in terminal: dedicated connection (independent from
+/// monitoring), shell with an xterm-256color PTY. Can switch to root automatically
+/// (sudo -i / su -) by answering the password prompt itself.
 /// </summary>
 public sealed class TerminalSession : IDisposable
 {
@@ -25,7 +25,7 @@ public sealed class TerminalSession : IDisposable
 
     public ServerConfig Server { get; }
 
-    /// <summary>Données brutes du terminal (UTF-8), sur un thread de lecture.</summary>
+    /// <summary>Raw terminal data (UTF-8), raised on a reader thread.</summary>
     public event Action<byte[]>? Output;
     public event Action? Closed;
 
@@ -62,7 +62,7 @@ public sealed class TerminalSession : IDisposable
         }
     }
 
-    /// <summary>Démarre la lecture, une fois les gestionnaires d'événements branchés.</summary>
+    /// <summary>Starts reading, once the event handlers are attached.</summary>
     public void Start()
     {
         var thread = new Thread(ReadLoop) { IsBackground = true, Name = $"Terminal {Server.DisplayName}" };
@@ -86,20 +86,20 @@ public sealed class TerminalSession : IDisposable
         }
         catch
         {
-            // Connexion coupée : la session se termine
+            // Connection lost: the session ends
         }
         RaiseClosed();
     }
 
     /// <summary>
-    /// Passage root : la commande part quand le shell a fini d'afficher son accueil, puis
-    /// la première invite de mot de passe reçue dans les 15 s reçoit le mot de passe enregistré.
+    /// Root switch: the command is sent once the shell has finished printing its welcome text,
+    /// then the first password prompt received within 15 s gets the saved password.
     /// </summary>
     private void OnData(byte[] chunk)
     {
         if (_rootCommand is not null && !_rootRequested)
         {
-            // Relancé à chaque paquet : part après 400 ms de silence (fin du MOTD, invite affichée)
+            // Restarted on every packet: fires after 400 ms of silence (end of the MOTD, prompt shown)
             _rootTimer ??= new Timer(_ => SendRootCommand());
             _rootTimer.Change(400, Timeout.Infinite);
             return;
@@ -114,7 +114,7 @@ public sealed class TerminalSession : IDisposable
                 _promptWatch.Remove(0, _promptWatch.Length - 400);
             if (RemoteExec.PasswordPromptRegex().IsMatch(_promptWatch.ToString()))
             {
-                _promptWatchUntil = DateTime.MinValue;   // une seule tentative
+                _promptWatchUntil = DateTime.MinValue;   // a single attempt
                 _promptWatch.Clear();
                 Write(_elevationPassword + "\r");
             }

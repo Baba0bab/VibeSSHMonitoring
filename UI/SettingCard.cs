@@ -7,8 +7,8 @@ using System.Windows.Controls;
 namespace VibeSSHMonitoring.UI;
 
 /// <summary>
-/// Ligne de réglage façon Paramètres Windows 11 : icône, titre, description,
-/// et le contrôle (Content) aligné à droite. Style dans Themes/Theme.xaml.
+/// Setting row in the style of Windows 11 Settings: icon, title, description, and the control
+/// (Content) aligned to the right. Style in Themes/Theme.xaml.
 /// </summary>
 public class SettingCard : ContentControl
 {

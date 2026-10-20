@@ -19,7 +19,7 @@
   🇬🇧 English · <a href="README.fr.md">🇫🇷 Français</a>
 </p>
 
-> The application's interface is in French.
+> The interface is available in **English, French, German and Spanish**. It follows the Windows display language by default; change it in *Settings → General → Language*.
 
 ![Servers dashboard](docs/screenshots/servers.png)
 
@@ -34,6 +34,7 @@
 - **System tray**: monitoring keeps running when the window is closed; Windows notifications for new updates, unreachable servers and changed host keys; scheduled update checks (every 6 / 12 / 24 h).
 - **Global settings + per-server overrides** for monitoring, terminal and update options.
 - **Installer and automatic updates**: per-user installer (no admin rights); the app updates itself from GitHub Releases (small delta downloads, installed when you close the app).
+- **Multilingual**: English, French, German and Spanish.
 
 | Settings | Server editor |
 |---|---|
@@ -60,7 +61,7 @@
 
 ### Updates
 
-The app checks GitHub Releases at startup and then every 12 hours, downloads new versions in the background (usually only a small *delta*) and installs them **when you close the app**, or right away with **Redémarrer et mettre à jour** (*Paramètres → Mises à jour de l'application*, or the button that appears in the side menu). You can turn off automatic checks or automatic installation, and opt in to pre-releases, in the same settings section.
+The app checks GitHub Releases at startup and then every 12 hours, downloads new versions in the background (usually only a small *delta*) and installs them **when you close the app**, or right away with **Restart and update** (*Settings → Application updates*, or the button that appears in the side menu). You can turn off automatic checks or automatic installation, and opt in to pre-releases, in the same settings section.
 
 ### Uninstalling
 
@@ -68,10 +69,10 @@ The app checks GitHub Releases at startup and then every 12 hours, downloads new
 
 ## Getting started
 
-1. **Ajouter un serveur**: address, port, user, then a password or an SSH key.
-2. Pick the **root access** method (*Aucune* if you log in as root, *sudo* or *su*).
-3. Click **Tester la connexion**: it checks the login, then root access. On the first connection, compare the displayed host key fingerprint with the server's (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) before approving it.
-4. Optional but recommended: **Déployer ma clé** creates an SSH key (`~/.ssh/id_ed25519`) if needed, installs it on the server and switches the server to key authentication.
+1. **Add server**: address, port, user, then a password or an SSH key.
+2. Pick the **root access** method (*None* if you log in as root, *sudo* or *su*).
+3. Click **Test connection**: it checks the login, then root access. On the first connection, compare the displayed host key fingerprint with the server's (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) before approving it.
+4. Optional but recommended: **Deploy my key** creates an SSH key (`~/.ssh/id_ed25519`) if needed, installs it on the server and switches the server to key authentication.
 
 ### Server-side root access
 
@@ -111,7 +112,7 @@ dotnet test Tests                   # unit tests
 
 A copy started with `dotnet run` is not installed: automatic updates are disabled there (the settings page says so).
 
-**Tests** cover the vault (master password, wrong password, mode changes), output parsing (`apt list`, `/proc`), settings resolution, SSH arguments, and the syntax of every shell script sent to servers, checked with Git for Windows' `sh` when it is installed.
+**Tests** cover the vault (master password, wrong password, mode changes), output parsing (`apt list`, `/proc`), settings resolution, SSH arguments, translations (same keys and placeholders in every language), and the syntax of every shell script sent to servers, checked with Git for Windows' `sh` when it is installed.
 
 **Isolated test data**: set `VIBESSHMONITORING_HOME` to a folder to run the app with a separate configuration and vault:
 
@@ -124,7 +125,7 @@ $env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-test"; dotnet run
 The installer and update packages are built with [Velopack](https://velopack.io) (`vpk`, pinned in [`dotnet-tools.json`](dotnet-tools.json)) by [`scripts/pack.ps1`](scripts/pack.ps1), the same script the release workflow runs:
 
 ```powershell
-./scripts/pack.ps1 -Version 1.0.0          # → Releases\VibeSSHMonitoring-win-Setup.exe, -Portable.zip, *.nupkg
+./scripts/pack.ps1 -Version 1.0.1          # → Releases\VibeSSHMonitoring-win-Setup.exe, -Portable.zip, *.nupkg
 ```
 
 The release notes embedded in the package (and shown in the app) come from the matching `## [x.y.z]` section of [CHANGELOG.md](CHANGELOG.md). If the previous version's packages are in `Releases\`, a delta package is generated too.
@@ -141,8 +142,8 @@ $env:VIBESSHMONITORING_UPDATE_SOURCE = "C:\path\to\Releases"
 Releases are built by GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)): add a `## [x.y.z] - date` section to [CHANGELOG.md](CHANGELOG.md), commit, then push a version tag. The workflow runs the tests, builds the installer and the full + delta update packages, and publishes them on GitHub Releases, installed copies pick the update up automatically. A tag with a suffix (`v1.1.0-beta.1`) creates a pre-release, offered only to users who opted in to pre-releases.
 
 ```powershell
-git tag v1.0.0
-git push origin v1.0.0
+git tag -a v1.0.1 -m "Vibe SSH Monitoring 1.0.1"
+git push origin v1.0.1
 ```
 
 ## Project structure
@@ -150,6 +151,7 @@ git push origin v1.0.0
 ```
 ├─ Program.cs            entry point (installer / updater hooks, then WPF)
 ├─ Core/                 SSH, remote commands, vault, configuration, updates (no UI)
+│  ├─ Loc.cs            translations (Localization/*.json, English fallback)
 │  ├─ SshConnection.cs   connection, host key check, plain / sudo / su execution
 │  ├─ RemoteCommands.cs  status probe, apt commands, output parsing
 │  ├─ SecretVault.cs     DPAPI, master password (Argon2id + AES-GCM) or plain text
@@ -158,6 +160,7 @@ git push origin v1.0.0
 │  └─ AppUpdater.cs      app updates from GitHub Releases (Velopack)
 ├─ UI/                   view model, dialogs, tray icon, built-in terminal view
 ├─ Assets/terminal/      xterm.js page loaded offline by WebView2
+├─ Localization/         interface texts: en.json (reference), fr.json, de.json, es.json
 ├─ Themes/Theme.xaml     colors and control styles
 ├─ ServerManager.cs      monitoring loop, actions, bulk actions, notifications
 ├─ AppController.cs      app lifecycle: config, vault, window, tray, auto-lock
@@ -169,7 +172,7 @@ git push origin v1.0.0
 
 ## Contributing
 
-Bug reports, ideas and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Maintainers: release checklist in [docs/RELEASING.md](docs/RELEASING.md).
+Bug reports, ideas, translations and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). To add a language, copy `Localization/en.json` to `<code>.json`, translate the values and add the language to `Loc.Languages` in `Core/Loc.cs`. Maintainers: release checklist in [docs/RELEASING.md](docs/RELEASING.md).
 
 ## License
 

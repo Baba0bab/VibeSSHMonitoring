@@ -18,7 +18,7 @@
 <script src="lib/addon-fit.js"></script>
 <script src="lib/addon-web-links.js"></script>
 <script>
-  // Pont avec l'application : messages JSON via WebView2 (aucun accès réseau depuis la page)
+  // Bridge with the application: JSON messages through WebView2 (no network access from the page)
   const post = m => window.chrome.webview.postMessage(m);
 
   const term = new Terminal({
@@ -61,7 +61,7 @@
   term.onData(d => post({ t: 'in', d }));
   term.onResize(({ cols, rows }) => post({ t: 'resize', cols, rows }));
 
-  // Raccourcis Windows : Ctrl+C copie s'il y a une sélection (sinon interruption), Ctrl+V colle
+  // Windows shortcuts: Ctrl+C copies when there is a selection (interrupts otherwise), Ctrl+V pastes
   term.attachCustomKeyEventHandler(e => {
     if (e.type !== 'keydown' || !e.ctrlKey || e.altKey) return true;
     if (e.code === 'KeyC' && (e.shiftKey || term.hasSelection())) { copySelection(); return false; }
@@ -69,7 +69,7 @@
     return true;
   });
 
-  // Clic droit façon PuTTY / Windows Terminal : copie la sélection, sinon colle
+  // Right click like PuTTY / Windows Terminal: copies the selection, pastes otherwise
   document.addEventListener('contextmenu', e => {
     e.preventDefault();
     if (!copySelection()) post({ t: 'paste' });

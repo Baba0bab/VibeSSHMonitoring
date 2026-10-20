@@ -8,9 +8,9 @@ using System.Text;
 namespace VibeSSHMonitoring.Core;
 
 /// <summary>
-/// Ouverture d'une session SSH dans un terminal externe, via le client OpenSSH de Windows.
-/// Le mot de passe ne peut pas lui être transmis : ssh.exe le demande lui-même (l'interface
-/// peut le placer temporairement dans le presse-papiers). Avec une clé, rien à saisir.
+/// Opens an SSH session in an external terminal, through the Windows OpenSSH client.
+/// The password cannot be handed over: ssh.exe asks for it itself (the interface can put it
+/// in the clipboard for a short time). With a key, there is nothing to type.
 /// </summary>
 public static class ExternalTerminal
 {
@@ -48,7 +48,7 @@ public static class ExternalTerminal
         return null;
     }
 
-    /// <summary>Arguments de ssh.exe, un élément par argument (non échappés).</summary>
+    /// <summary>ssh.exe arguments, one item per argument (not escaped).</summary>
     public static List<string> SshArguments(ServerConfig server, bool rootShell)
     {
         var args = new List<string> { "-p", server.Port.ToString(), "-o", "ServerAliveInterval=30" };
@@ -81,7 +81,7 @@ public static class ExternalTerminal
         {
             case TerminalMode.WindowsTerminal:
             {
-                // wt.exe est un alias d'exécution d'application : lancé via le shell
+                // wt.exe is an app execution alias: started through the shell
                 var wtArgs = new List<string> { "new-tab", "--title", title, SshExe };
                 wtArgs.AddRange(args);
                 psi = new ProcessStartInfo("wt.exe", JoinWindowsArgs(wtArgs)) { UseShellExecute = true };
@@ -89,7 +89,7 @@ public static class ExternalTerminal
             }
             case TerminalMode.PowerShell:
             {
-                // Commande encodée : aucun souci d'échappement entre Windows et PowerShell
+                // Encoded command: no escaping issue between Windows and PowerShell
                 var sb = new StringBuilder($"$Host.UI.RawUI.WindowTitle = {PsQuote(title)}; & {PsQuote(SshExe)}");
                 foreach (var a in args)
                     sb.Append(' ').Append(PsQuote(a));
@@ -102,7 +102,7 @@ public static class ExternalTerminal
             }
             case TerminalMode.Cmd:
             {
-                // cmd /k "…" : les guillemets extérieurs sont retirés par cmd, le reste est conservé
+                // cmd /k "…": cmd strips the outer quotes and keeps the rest
                 string inner = $"title {title.Replace("&", "").Replace("|", "")} & {JoinWindowsArgs(new[] { SshExe }.Concat(args))}";
                 psi = new ProcessStartInfo("cmd.exe", $"/k \"{inner}\"") { UseShellExecute = true };
                 break;
@@ -110,7 +110,7 @@ public static class ExternalTerminal
             case TerminalMode.PuTTY:
             {
                 string putty = FindPutty() ?? throw new FileNotFoundException(
-                    "PuTTY est introuvable (ni dans Program Files, ni dans le PATH).");
+                    Loc.T("Terminal.PuttyNotFound"));
                 var puttyArgs = new List<string> { "-ssh", "-P", server.Port.ToString() };
                 if (server.Auth == AuthMethod.PrivateKey &&
                     SshConnector.ExpandPath(server.KeyPath).EndsWith(".ppk", StringComparison.OrdinalIgnoreCase))
@@ -137,12 +137,12 @@ public static class ExternalTerminal
                     .Trim();
                 var (exe, rest) = SplitCommandLine(line);
                 if (exe.Length == 0)
-                    throw new InvalidOperationException("La commande du terminal personnalisé est vide.");
+                    throw new InvalidOperationException(Loc.T("Terminal.CustomCommandEmpty"));
                 psi = new ProcessStartInfo(exe, rest) { UseShellExecute = true };
                 break;
             }
             default:
-                throw new InvalidOperationException("Le terminal intégré ne s'ouvre pas dans une fenêtre externe.");
+                throw new InvalidOperationException(Loc.T("Terminal.EmbeddedNotExternal"));
         }
 
         Process.Start(psi)?.Dispose();
@@ -161,7 +161,7 @@ public static class ExternalTerminal
 
     private static string PsQuote(string s) => "'" + s.Replace("'", "''") + "'";
 
-    /// <summary>Échappement des arguments selon les règles de CommandLineToArgvW.</summary>
+    /// <summary>Argument escaping following the CommandLineToArgvW rules.</summary>
     private static string JoinWindowsArgs(IEnumerable<string> args) => string.Join(' ', args.Select(QuoteWindowsArg));
 
     private static string QuoteWindowsArg(string arg)

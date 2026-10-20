@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Baba0bab — Vibe SSH Monitoring
 
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
+using VibeSSHMonitoring.Core;
 using VibeSSHMonitoring.UI;
 
 namespace VibeSSHMonitoring;
@@ -10,13 +12,19 @@ namespace VibeSSHMonitoring;
 public partial class App : Application
 {
     private const string InstanceName = "VibeSSHMonitoring_SingleInstance";
+
+    /// <summary>Argument of a restart (language change): wait for the previous instance to exit.</summary>
+    public const string WaitForArgument = "--wait-for";
+
     private static Mutex? _instanceMutex;
     private EventWaitHandle? _showSignal;
     private AppController? _controller;
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // Instance unique : un second lancement réaffiche simplement la fenêtre existante
+        WaitForPreviousInstance(e.Args);
+
+        // Single instance: a second launch simply shows the existing window again
         _instanceMutex = new Mutex(true, InstanceName, out bool isNew);
         if (!isNew)
         {
@@ -45,11 +53,31 @@ public partial class App : Application
         _controller.Start(showWindow: !minimized);
     }
 
-    /// <summary>Une erreur inattendue ne doit pas fermer l'application (et ses terminaux).</summary>
+    /// <summary>
+    /// After a restart, the previous instance may still be closing: wait for it (15 s at most) so
+    /// that this one takes over the single-instance lock instead of handing over to it.
+    /// </summary>
+    private static void WaitForPreviousInstance(string[] args)
+    {
+        int index = Array.IndexOf(args, WaitForArgument);
+        if (index < 0 || index + 1 >= args.Length || !int.TryParse(args[index + 1], out int pid))
+            return;
+        try
+        {
+            using var previous = Process.GetProcessById(pid);
+            previous.WaitForExit(TimeSpan.FromSeconds(15));
+        }
+        catch (ArgumentException)
+        {
+            // Already gone
+        }
+    }
+
+    /// <summary>An unexpected error must not close the application (and its terminals).</summary>
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         e.Handled = true;
-        Dialogs.Info(Dialogs.ActiveWindow(), "Erreur inattendue", e.Exception.Message, error: true,
+        Dialogs.Info(Dialogs.ActiveWindow(), Loc.T("Error.Unexpected"), e.Exception.Message, error: true,
             detail: e.Exception.ToString());
     }
 

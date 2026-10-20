@@ -6,12 +6,12 @@ using Microsoft.Win32;
 
 namespace VibeSSHMonitoring.Core;
 
-/// <summary>Démarrage automatique avec Windows via la clé de registre Run (HKCU).</summary>
+/// <summary>Start with Windows through the Run registry key (HKCU).</summary>
 public static class StartupManager
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ValueName = "VibeSSHMonitoring";
-    private const string LegacyValueName = "SshVibeMonitoring";   // ancien nom de l'application
+    private const string LegacyValueName = "SshVibeMonitoring";   // former application name
 
     public static bool IsEnabled()
     {
@@ -19,7 +19,7 @@ public static class StartupManager
         return key?.GetValue(ValueName) is not null;
     }
 
-    /// <summary>Entrée de démarrage créée sous l'ancien nom : remplacée par la nouvelle.</summary>
+    /// <summary>Startup entry created under the former name: replaced by the new one.</summary>
     public static void MigrateLegacyEntry(bool startMinimized)
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true);

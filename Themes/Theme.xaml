@@ -2,10 +2,10 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:ui="clr-namespace:VibeSSHMonitoring.UI">
 
-    <!-- ===== Typographie ===== -->
+    <!-- ===== Typography ===== -->
     <FontFamily x:Key="TextFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
-    <!-- Segoe Fluent Icons (Windows 11), repli sur Segoe MDL2 Assets (Windows 10) : mêmes codes -->
+    <!-- Segoe Fluent Icons (Windows 11), falling back to Segoe MDL2 Assets (Windows 10): same code points -->
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
     <!-- ===== Palette ===== -->
@@ -46,12 +46,12 @@
     <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
     <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
     <SolidColorBrush x:Key="NeutralBrush" Color="{StaticResource NeutralColor}"/>
-    <!-- Voiles blancs translucides : survol / appui / sélection sur n'importe quel fond -->
+    <!-- Translucent white veils: hover / press / selection on any background -->
     <SolidColorBrush x:Key="SubtleFillBrush" Color="#12FFFFFF"/>
     <SolidColorBrush x:Key="SubtlePressedBrush" Color="#0AFFFFFF"/>
     <SolidColorBrush x:Key="SelectedFillBrush" Color="#1AFFFFFF"/>
 
-    <!-- ===== Focus clavier ===== -->
+    <!-- ===== Keyboard focus ===== -->
     <Style x:Key="FocusRing">
         <Setter Property="Control.Template">
             <Setter.Value>
@@ -62,7 +62,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Textes ===== -->
+    <!-- ===== Texts ===== -->
     <Style x:Key="PageTitle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
         <Setter Property="FontSize" Value="28"/>
@@ -105,7 +105,7 @@
         <Setter Property="Padding" Value="16,14"/>
     </Style>
 
-    <!-- Ligne de réglage : icône, titre, description, contrôle à droite -->
+    <!-- Setting row: icon, title, description, control on the right -->
     <Style TargetType="ui:SettingCard">
         <Setter Property="Background" Value="{StaticResource CardBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}"/>
@@ -142,7 +142,7 @@
                         <Trigger Property="Description" Value="{x:Null}">
                             <Setter TargetName="description" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
-                        <!-- Le contrôle (Content) gère son propre état désactivé -->
+                        <!-- The control (Content) handles its own disabled state -->
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="icon" Property="Opacity" Value="0.45"/>
                             <Setter TargetName="text" Property="Opacity" Value="0.45"/>
@@ -153,8 +153,8 @@
         </Setter>
     </Style>
 
-    <!-- ===== Boutons ===== -->
-    <!-- Tag = glyphe d'icône optionnel affiché avant le texte -->
+    <!-- ===== Buttons ===== -->
+    <!-- Tag = optional icon glyph shown before the text -->
     <Style TargetType="Button">
         <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
@@ -205,7 +205,7 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
-    <!-- Bouton icône seule (Content = glyphe) -->
+    <!-- Icon-only button (Content = glyph) -->
     <Style x:Key="IconButton" TargetType="Button">
         <Setter Property="Width" Value="40"/>
         <Setter Property="Height" Value="36"/>
@@ -238,7 +238,7 @@
         </Setter>
     </Style>
 
-    <!-- Tuile cliquable (résumés de l'accueil) -->
+    <!-- Clickable tile -->
     <Style x:Key="TileButton" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource CardBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
@@ -267,8 +267,8 @@
         </Setter>
     </Style>
 
-    <!-- ===== Menu latéral ===== -->
-    <!-- Tag = glyphe ; icône alignée sur 40 px pour rester visible en mode replié -->
+    <!-- ===== Side menu ===== -->
+    <!-- Tag = glyph; icon aligned on 40 px to stay visible when the menu is collapsed -->
     <Style x:Key="NavItem" TargetType="RadioButton">
         <Setter Property="GroupName" Value="Nav"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
@@ -306,7 +306,7 @@
                             <Setter TargetName="bd" Property="Background" Value="{StaticResource SelectedFillBrush}"/>
                             <Setter TargetName="icon" Property="Foreground" Value="{StaticResource AccentLightBrush}"/>
                             <Setter TargetName="indicator" Property="Opacity" Value="1"/>
-                            <!-- Transition seulement : sans elle, l'indicateur reste à sa taille finale -->
+                            <!-- Transition only: without it, the indicator stays at its final size -->
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
@@ -327,7 +327,7 @@
         </Setter>
     </Style>
 
-    <!-- Action du menu latéral (même gabarit que NavItem, teinte accent) : Tag = glyphe -->
+    <!-- Side menu action (same template as NavItem, accent tint): Tag = glyph -->
     <Style x:Key="SidebarAction" TargetType="Button">
         <Setter Property="Foreground" Value="{StaticResource AccentLightBrush}"/>
         <Setter Property="FontSize" Value="14"/>
@@ -358,7 +358,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Contrôle segmenté (RadioButtons dans un SegmentedHost) ===== -->
+    <!-- ===== Segmented control (RadioButtons in a SegmentedHost) ===== -->
     <Style x:Key="SegmentedHost" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource InsetBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}"/>
@@ -397,7 +397,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Interrupteur (CheckBox) ===== -->
+    <!-- ===== Toggle switch (CheckBox) ===== -->
     <Style x:Key="Switch" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="FontSize" Value="14"/>
@@ -407,7 +407,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <StackPanel Orientation="Horizontal" Background="Transparent">
-                        <TextBlock x:Name="state" Text="Désactivé" MinWidth="70" TextAlignment="Right"
+                        <TextBlock x:Name="state" Text="{ui:Tr Common.Off}" MinWidth="70" TextAlignment="Right"
                                    VerticalAlignment="Center" Margin="0,0,12,0"
                                    Foreground="{StaticResource TextSecondaryBrush}"/>
                         <Grid Width="40" Height="20">
@@ -433,10 +433,10 @@
                             <Setter TargetName="track" Property="Background" Value="{StaticResource AccentBrush}"/>
                             <Setter TargetName="track" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
                             <Setter TargetName="knob" Property="Fill" Value="White"/>
-                            <Setter TargetName="state" Property="Text" Value="Activé"/>
+                            <Setter TargetName="state" Property="Text" Value="{ui:Tr Common.On}"/>
                             <Setter TargetName="state" Property="Foreground" Value="{StaticResource TextBrush}"/>
                             <Setter TargetName="knob" Property="HorizontalAlignment" Value="Right"/>
-                            <!-- La position vient de l'alignement ; l'animation ne fait que le glissement -->
+                            <!-- The position comes from the alignment; the animation only does the slide -->
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
@@ -473,7 +473,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Champ texte (Tag="error" = bordure d'erreur) ===== -->
+    <!-- ===== Text box (Tag="error" = error border) ===== -->
     <Style TargetType="TextBox">
         <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
@@ -510,13 +510,13 @@
         </Setter>
     </Style>
 
-    <!-- ===== Listes de cartes sélectionnables (écrans, lampes) ===== -->
+    <!-- ===== Lists of selectable cards ===== -->
     <Style x:Key="CardList" TargetType="ListBox">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="SelectionMode" Value="Single"/>
-        <!-- Pas de ScrollViewer interne : la page défile d'un seul bloc -->
+        <!-- No inner ScrollViewer: the page scrolls as a whole -->
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBox">
@@ -573,7 +573,7 @@
         </Setter>
     </Style>
 
-    <!-- Petit badge texte (ex. "Principal") -->
+    <!-- Small text badge -->
     <Style x:Key="Badge" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource AccentSubtleBrush}"/>
         <Setter Property="CornerRadius" Value="4"/>
@@ -582,7 +582,7 @@
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
-    <!-- ===== Indicateur d'activité ===== -->
+    <!-- ===== Activity indicator ===== -->
     <Style x:Key="Spinner" TargetType="Control">
         <Setter Property="Width" Value="16"/>
         <Setter Property="Height" Value="16"/>
@@ -598,7 +598,7 @@
                         </Ellipse.RenderTransform>
                     </Ellipse>
                     <ControlTemplate.Triggers>
-                        <!-- Tourne uniquement quand il est visible : aucun coût caché -->
+                        <!-- Only spins while visible: no hidden cost -->
                         <Trigger Property="IsVisible" Value="True">
                             <Trigger.EnterActions>
                                 <BeginStoryboard x:Name="spin">
@@ -619,7 +619,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Info-bulle ===== -->
+    <!-- ===== Tooltip ===== -->
     <Style TargetType="ToolTip">
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="FontSize" Value="12"/>
@@ -642,7 +642,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Barre de défilement fine ===== -->
+    <!-- ===== Thin scroll bar ===== -->
     <Style x:Key="ScrollThumb" TargetType="Thumb">
         <Setter Property="Template">
             <Setter.Value>
@@ -694,12 +694,12 @@
     </Style>
 
     <!-- =====================================================================
-         Ajouts Vibe SSH Monitoring
+         Vibe SSH Monitoring additions
          ===================================================================== -->
 
     <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas, Courier New</FontFamily>
 
-    <!-- ===== Champ mot de passe (même rendu que TextBox) ===== -->
+    <!-- ===== Password box (same look as TextBox) ===== -->
     <Style TargetType="PasswordBox">
         <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
@@ -739,7 +739,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Console (journal des commandes) ===== -->
+    <!-- ===== Console (operation log) ===== -->
     <Style x:Key="ConsoleBox" TargetType="TextBox">
         <Setter Property="Background" Value="{StaticResource InsetBrush}"/>
         <Setter Property="Foreground" Value="#FFD6D6E2"/>
@@ -763,7 +763,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Boutons supplémentaires ===== -->
+    <!-- ===== Additional buttons ===== -->
     <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Setter Property="Background" Value="#33F2615C"/>
         <Setter Property="BorderBrush" Value="#66F2615C"/>
@@ -777,7 +777,7 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
-    <!-- Bouton compact des cartes serveur -->
+    <!-- Compact button of the server cards -->
     <Style x:Key="SmallButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Setter Property="Padding" Value="10,5"/>
         <Setter Property="MinHeight" Value="30"/>
@@ -790,7 +790,7 @@
         <Setter Property="FontSize" Value="12"/>
     </Style>
 
-    <!-- Lien texte -->
+    <!-- Text link -->
     <Style x:Key="LinkButton" TargetType="Button">
         <Setter Property="Foreground" Value="{StaticResource AccentLightBrush}"/>
         <Setter Property="FontSize" Value="13"/>
@@ -813,7 +813,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Badges colorés ===== -->
+    <!-- ===== Colored badges ===== -->
     <Style x:Key="WarningBadge" TargetType="Border" BasedOn="{StaticResource Badge}">
         <Setter Property="Background" Value="#26F5B94B"/>
     </Style>
@@ -827,7 +827,7 @@
         <Setter Property="Background" Value="{StaticResource SubtleFillBrush}"/>
     </Style>
 
-    <!-- ===== Jauge (CPU, RAM, disque) ===== -->
+    <!-- ===== Meter (CPU, RAM, disk) ===== -->
     <Style x:Key="Meter" TargetType="ProgressBar">
         <Setter Property="Height" Value="6"/>
         <Setter Property="Minimum" Value="0"/>
@@ -848,7 +848,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Case de sélection (cartes serveur) ===== -->
+    <!-- ===== Selection box (server cards) ===== -->
     <Style x:Key="SelectBox" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
@@ -876,7 +876,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Pastille de filtre (groupes / tags) ===== -->
+    <!-- ===== Filter chip (groups / tags) ===== -->
     <Style x:Key="Chip" TargetType="ToggleButton">
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
         <Setter Property="FontSize" Value="13"/>
@@ -907,7 +907,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Liste déroulante ===== -->
+    <!-- ===== Drop-down list ===== -->
     <Style x:Key="ComboToggle" TargetType="ToggleButton">
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="ClickMode" Value="Press"/>
@@ -998,7 +998,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Menu contextuel (actions des cartes) ===== -->
+    <!-- ===== Context menu (card actions) ===== -->
     <Style TargetType="ContextMenu">
         <Setter Property="OverridesDefaultStyle" Value="True"/>
         <Setter Property="HasDropShadow" Value="False"/>
@@ -1016,7 +1016,7 @@
         </Setter>
     </Style>
 
-    <!-- Tag = glyphe d'icône -->
+    <!-- Tag = icon glyph -->
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="FontSize" Value="13"/>
@@ -1054,7 +1054,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Onglets des terminaux ===== -->
+    <!-- ===== Terminal tabs ===== -->
     <Style x:Key="TabStrip" TargetType="ListBox">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>

@@ -1,14 +1,15 @@
-## What / Quoi
+## What
 
-<!-- What does this change and why? / Que change cette PR et pourquoi ? -->
+<!-- What does this change and why? -->
 
-## How it was tested / Comment c'est testé
+## How it was tested
 
-- [ ] `dotnet build` — no warnings / aucun avertissement
+- [ ] `dotnet build`: no warnings
 - [ ] `dotnet test Tests`
-- [ ] Tested on a real server / Testé sur un vrai serveur (distribution : …)
+- [ ] Tested on a real server (distribution: …)
 
 ## Checklist
 
-- [ ] No secret on a command line, in logs or in `config.json` / Aucun secret dans une ligne de commande, les journaux ou `config.json`
-- [ ] CHANGELOG.md updated (*Unreleased*) / mis à jour
+- [ ] No secret on a command line, in logs or in `config.json`
+- [ ] New interface texts added to every file in `Localization/` (English is the reference)
+- [ ] CHANGELOG.md updated (*Unreleased*)

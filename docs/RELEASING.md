@@ -15,7 +15,7 @@ A release is a git tag `vX.Y.Z`. Pushing it runs [`.github/workflows/release.yml
 | Breaking change (config format, dropped feature) | major | 1.3.0 → 2.0.0 |
 | Test build for volunteers | pre-release suffix | 1.3.0-beta.1 |
 
-Pre-releases (`-beta.1`, `-rc.1`) are only offered to users who enabled *Inclure les préversions*. The version comes **only from the tag**: never edit `<VersionPrefix>` in the `.csproj`.
+Pre-releases (`-beta.1`, `-rc.1`) are only offered to users who enabled *Include pre-releases*. The version comes **only from the tag**: never edit `<VersionPrefix>` in the `.csproj`.
 
 ### 2. Prepare
 
@@ -28,7 +28,7 @@ dotnet test Tests                                          # all tests pass
 
 ### 3. Update CHANGELOG.md
 
-Move the *Unreleased* entries into a new section. **Its title must be exactly `## [X.Y.Z] - YYYY-MM-DD`**: `scripts/pack.ps1` extracts it as the release notes shown in the app and on GitHub (empty notes and a warning otherwise). Group entries under `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Security`, user-oriented, one line each. Update the links at the bottom:
+Move the *Unreleased* entries into a new section. **Its title must be exactly `## [X.Y.Z] - YYYY-MM-DD`**: `scripts/pack.ps1` extracts it as the release notes shown in the app and on GitHub (empty notes and a warning otherwise). Group entries under `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Security`, user-oriented, one line each. **Write them in English**: they are the release notes on GitHub and in the app, whatever its language. Update the links at the bottom:
 
 ```markdown
 ## [Unreleased]
@@ -65,7 +65,7 @@ gh run watch (gh run list --workflow release.yml --limit 1 --json databaseId --j
 gh release view v1.3.0
 ```
 
-Expected assets: `VibeSSHMonitoring-win-Setup.exe`, `VibeSSHMonitoring-win-Portable.zip`, `VibeSSHMonitoring-1.3.0-full.nupkg`, `VibeSSHMonitoring-1.3.0-delta.nupkg` (missing only for the very first release), `releases.win.json`, `RELEASES`, `SHA256SUMS.txt`. The release must be published (not a draft) and marked pre-release only for suffixed versions. Finally, on a machine with the previous version installed: *Paramètres → Mises à jour de l'application → Rechercher* should find and install it.
+Expected assets: `VibeSSHMonitoring-win-Setup.exe`, `VibeSSHMonitoring-win-Portable.zip`, `VibeSSHMonitoring-1.3.0-full.nupkg`, `VibeSSHMonitoring-1.3.0-delta.nupkg` (missing only for the very first release), `releases.win.json`, `RELEASES`, `SHA256SUMS.txt`. The release must be published (not a draft) and marked pre-release only for suffixed versions. Finally, on a machine with the previous version installed: *Settings → Application updates → Check now* should find and install it.
 
 ### If something goes wrong
 
@@ -110,7 +110,7 @@ dotnet test Tests                                          # tous les tests pass
 
 ### 3. Mettre à jour CHANGELOG.md
 
-Déplacez les entrées de *Unreleased* dans une nouvelle section. **Son titre doit être exactement `## [X.Y.Z] - AAAA-MM-JJ`** : `scripts/pack.ps1` l'extrait comme notes de version, affichées dans l'application et sur GitHub (sinon notes vides et avertissement). Classez sous `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Security`, du point de vue de l'utilisateur, une ligne par entrée. Mettez à jour les liens en bas (voir l'exemple anglais ci-dessus).
+Déplacez les entrées de *Unreleased* dans une nouvelle section. **Son titre doit être exactement `## [X.Y.Z] - AAAA-MM-JJ`** : `scripts/pack.ps1` l'extrait comme notes de version, affichées dans l'application et sur GitHub (sinon notes vides et avertissement). Classez sous `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Security`, du point de vue de l'utilisateur, une ligne par entrée. **Rédigez-les en anglais** : ce sont les notes de version sur GitHub et dans l'application, quelle que soit sa langue. Mettez à jour les liens en bas (voir l'exemple anglais ci-dessus).
 
 ### 4. Essai local (facultatif)
 

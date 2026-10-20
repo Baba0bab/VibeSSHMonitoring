@@ -15,8 +15,8 @@ using VibeSSHMonitoring.Core;
 namespace VibeSSHMonitoring.UI;
 
 /// <summary>
-/// Terminal intégré : xterm.js dans WebView2 (page locale, hors ligne), relié à une
-/// <see cref="TerminalSession"/>. Entrée après une déconnexion = reconnexion.
+/// Built-in terminal: xterm.js in WebView2 (local, offline page), connected to a
+/// <see cref="TerminalSession"/>. Enter after a disconnection = reconnect.
 /// </summary>
 public sealed class TerminalView : Border, IDisposable
 {
@@ -49,7 +49,7 @@ public sealed class TerminalView : Border, IDisposable
 
     private static Task<CoreWebView2Environment> GetEnvironment()
     {
-        // Données WebView2 dans le cache local : le dossier de l'exe est géré par l'installateur
+        // WebView2 data in the local cache: the exe folder is managed by the installer
         string folder = Path.Combine(AppConfig.CacheDirectory, "WebView2");
         return _environment ??= CoreWebView2Environment.CreateAsync(null, folder);
     }
@@ -63,8 +63,8 @@ public sealed class TerminalView : Border, IDisposable
         catch (Exception ex)
         {
             ShowFallback(ex is WebView2RuntimeNotFoundException
-                ? "Le runtime Microsoft Edge WebView2 est introuvable. Installez-le, ou choisissez un terminal externe dans les paramètres."
-                : $"Impossible de démarrer le terminal intégré : {ex.Message}");
+                ? Loc.T("TerminalView.NoWebView2")
+                : Loc.T("TerminalView.StartFailed", ex.Message));
             return;
         }
         if (_disposed)
@@ -86,7 +86,7 @@ public sealed class TerminalView : Border, IDisposable
         core.NavigationStarting += (_, e) =>
         {
             if (!e.Uri.StartsWith($"https://{HostName}/", StringComparison.OrdinalIgnoreCase))
-                e.Cancel = true;   // la page ne quitte jamais le terminal local
+                e.Cancel = true;   // the page never leaves the local terminal
         };
         core.WebMessageReceived += OnWebMessage;
         core.Navigate($"https://{HostName}/index.html");
@@ -174,13 +174,13 @@ public sealed class TerminalView : Border, IDisposable
             return;
         _connecting = true;
         SetState(TerminalState.Connecting);
-        Status($"Connexion à {Server.Endpoint}…");
+        Status(Loc.T("TerminalView.Connecting", Server.Endpoint));
         try
         {
             var session = await _manager.OpenTerminalSessionAsync(Server, _columns, _rows);
             if (session is null)
             {
-                Status("Connexion annulée. Appuyez sur Entrée pour réessayer.");
+                Status(Loc.T("TerminalView.Cancelled"));
                 SetState(TerminalState.Closed);
                 return;
             }
@@ -200,7 +200,7 @@ public sealed class TerminalView : Border, IDisposable
         catch (SshOperationException ex)
         {
             Status($"✖ {ex.Message}");
-            Status("Appuyez sur Entrée pour réessayer.");
+            Status(Loc.T("TerminalView.PressEnterRetry"));
             SetState(TerminalState.Closed);
         }
         catch (Exception ex)
@@ -221,11 +221,11 @@ public sealed class TerminalView : Border, IDisposable
         FlushOutput();
         _session = null;
         session.Dispose();
-        Status("Session terminée. Appuyez sur Entrée pour vous reconnecter.");
+        Status(Loc.T("TerminalView.Ended"));
         SetState(TerminalState.Closed);
     }
 
-    /// <summary>Thread de lecture : les paquets sont regroupés en un message par passage du Dispatcher.</summary>
+    /// <summary>Reader thread: packets are merged into one message per Dispatcher pass.</summary>
     private void OnOutput(byte[] data)
     {
         lock (_pending)

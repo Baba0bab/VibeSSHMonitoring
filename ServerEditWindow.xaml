@@ -1,8 +1,8 @@
-<Window x:Class="VibeSSHMonitoring.ServerEditWindow"
+﻿<Window x:Class="VibeSSHMonitoring.ServerEditWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:VibeSSHMonitoring.UI"
-        Title="Serveur"
+        Title="{ui:Tr Editor.WindowTitle}"
         Width="700" Height="820" MinWidth="560" MinHeight="480"
         Background="{StaticResource BaseBrush}"
         FontFamily="{StaticResource TextFont}"
@@ -30,14 +30,14 @@
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
             <StackPanel Margin="28,20,28,24">
-                <TextBlock x:Name="TitleText" Text="Ajouter un serveur" Style="{StaticResource PageTitle}" FontSize="24"/>
-                <TextBlock Text="Serveur Debian ou Ubuntu accessible en SSH. Les mots de passe sont stockés dans le coffre, jamais dans la configuration."
+                <TextBlock x:Name="TitleText" Text="{ui:Tr Servers.Add}" Style="{StaticResource PageTitle}" FontSize="24"/>
+                <TextBlock Text="{ui:Tr Editor.Subtitle}"
                            Style="{StaticResource PageSubtitle}" Margin="0,0,0,8"/>
 
-                <!-- Connexion -->
-                <TextBlock Text="Connexion" Style="{StaticResource SectionHeader}" Margin="2,12,0,10"/>
+                <!-- Connection -->
+                <TextBlock Text="{ui:Tr Editor.Connection}" Style="{StaticResource SectionHeader}" Margin="2,12,0,10"/>
                 <StackPanel Style="{StaticResource Field}">
-                    <TextBlock Text="Nom affiché (facultatif)" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{ui:Tr Editor.DisplayName}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="NameBox"/>
                 </StackPanel>
                 <Grid>
@@ -47,71 +47,70 @@
                         <ColumnDefinition Width="110"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Style="{StaticResource Field}">
-                        <TextBlock Text="Adresse IP ou nom d'hôte" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{ui:Tr Editor.Host}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="HostBox"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Style="{StaticResource Field}">
-                        <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{ui:Tr Editor.Port}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="PortBox" Text="22"/>
                     </StackPanel>
                 </Grid>
                 <StackPanel Style="{StaticResource Field}">
-                    <TextBlock Text="Utilisateur" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{ui:Tr Editor.User}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="UserBox" TextChanged="UserBox_TextChanged"/>
                 </StackPanel>
 
-                <!-- Authentification -->
-                <TextBlock Text="Authentification" Style="{StaticResource SectionHeader}" Margin="2,8,0,10"/>
+                <!-- Authentication -->
+                <TextBlock Text="{ui:Tr Editor.Authentication}" Style="{StaticResource SectionHeader}" Margin="2,8,0,10"/>
                 <Border Style="{StaticResource SegmentedHost}" HorizontalAlignment="Left" Margin="0,0,0,14">
                     <StackPanel x:Name="AuthSegments" Orientation="Horizontal">
-                        <RadioButton x:Name="AuthPasswordRadio" Style="{StaticResource Segment}" GroupName="Auth" Content="Mot de passe"
+                        <RadioButton x:Name="AuthPasswordRadio" Style="{StaticResource Segment}" GroupName="Auth" Content="{ui:Tr Password.Label}"
                                      Checked="Auth_Checked"/>
-                        <RadioButton x:Name="AuthKeyRadio" Style="{StaticResource Segment}" GroupName="Auth" Content="Clé SSH"
+                        <RadioButton x:Name="AuthKeyRadio" Style="{StaticResource Segment}" GroupName="Auth" Content="{ui:Tr Editor.SshKey}"
                                      Checked="Auth_Checked"/>
                     </StackPanel>
                 </Border>
                 <StackPanel x:Name="PasswordPanel">
                     <StackPanel Style="{StaticResource Field}">
-                        <TextBlock Text="Mot de passe" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{ui:Tr Password.Label}" Style="{StaticResource FieldLabel}"/>
                         <PasswordBox x:Name="PasswordBox"/>
                     </StackPanel>
                     <Border Style="{StaticResource Card}" Background="{StaticResource InsetBrush}" Margin="0,0,0,14">
                         <DockPanel>
-                            <Button x:Name="DeployKeyButton" DockPanel.Dock="Right" Tag="&#xE8D7;" Content="Déployer ma clé"
+                            <Button x:Name="DeployKeyButton" DockPanel.Dock="Right" Tag="&#xE8D7;" Content="{ui:Tr Editor.DeployKey}"
                                     VerticalAlignment="Center" Margin="12,0,0,0" Click="DeployKey_Click"/>
                             <TextBlock Style="{StaticResource Icon}" DockPanel.Dock="Left" Text="&#xE946;" VerticalAlignment="Top"
                                        Margin="0,1,12,0" Foreground="{StaticResource AccentLightBrush}"/>
-                            <TextBlock Style="{StaticResource Caption}" FontSize="13">
-                                <Run Foreground="{StaticResource TextBrush}">Conseil :</Run>
-                                une clé SSH est plus sûre qu'un mot de passe et permet d'ouvrir les terminaux externes sans rien saisir.
-                                Ce bouton crée votre clé (~/.ssh/id_ed25519) si besoin, l'installe sur le serveur et bascule la connexion dessus.
+                            <TextBlock Style="{StaticResource Caption}" FontSize="13" TextWrapping="Wrap">
+                                <Run Foreground="{StaticResource TextBrush}" Text="{ui:Tr Editor.TipTitle}"/>
+                                <Run Text="{ui:Tr Editor.TipText}"/>
                             </TextBlock>
                         </DockPanel>
                     </Border>
                 </StackPanel>
                 <StackPanel x:Name="KeyPanel" Visibility="Collapsed">
                     <StackPanel Style="{StaticResource Field}">
-                        <TextBlock Text="Clé privée (OpenSSH, PuTTY .ppk ou PEM)" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{ui:Tr Editor.PrivateKey}" Style="{StaticResource FieldLabel}"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="KeyPathBox" FontFamily="{StaticResource MonoFont}" FontSize="13"/>
-                            <Button Grid.Column="1" Content="Parcourir…" Margin="8,0,0,0" Click="BrowseKey_Click"/>
+                            <Button Grid.Column="1" Content="{ui:Tr Editor.Browse}" Margin="8,0,0,0" Click="BrowseKey_Click"/>
                         </Grid>
                     </StackPanel>
                     <StackPanel Style="{StaticResource Field}">
-                        <TextBlock Text="Phrase de passe de la clé (si elle en a une)" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{ui:Tr Editor.Passphrase}" Style="{StaticResource FieldLabel}"/>
                         <PasswordBox x:Name="PassphraseBox"/>
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Élévation -->
-                <TextBlock Text="Accès root (apt, redémarrage)" Style="{StaticResource SectionHeader}" Margin="2,8,0,10"/>
+                <!-- Elevation -->
+                <TextBlock Text="{ui:Tr Editor.RootAccess}" Style="{StaticResource SectionHeader}" Margin="2,8,0,10"/>
                 <Border x:Name="ElevationHost" Style="{StaticResource SegmentedHost}" HorizontalAlignment="Left" Margin="0,0,0,8">
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="ElevNoneRadio" Style="{StaticResource Segment}" GroupName="Elev" Content="Aucune"
+                        <RadioButton x:Name="ElevNoneRadio" Style="{StaticResource Segment}" GroupName="Elev" Content="{ui:Tr Editor.ElevationNone}"
                                      Checked="Elevation_Checked"/>
                         <RadioButton x:Name="ElevSudoRadio" Style="{StaticResource Segment}" GroupName="Elev" Content="sudo"
                                      Checked="Elevation_Checked"/>
@@ -121,46 +120,46 @@
                 </Border>
                 <TextBlock x:Name="ElevationHint" Style="{StaticResource Caption}" FontSize="13" Margin="2,0,0,12"/>
                 <StackPanel x:Name="SudoPanel" Visibility="Collapsed">
-                    <ui:SettingCard Header="Même mot de passe que la connexion" MinHeight="56"
-                                    Description="Désactivez si sudo demande un autre mot de passe, ou laissez vide pour une règle NOPASSWD.">
+                    <ui:SettingCard Header="{ui:Tr Editor.SudoSame}" MinHeight="56"
+                                    Description="{ui:Tr Editor.SudoSameDesc}">
                         <CheckBox x:Name="SudoSameSwitch" Style="{StaticResource Switch}" Checked="SudoSame_Changed"
                                   Unchecked="SudoSame_Changed"/>
                     </ui:SettingCard>
                     <StackPanel x:Name="SudoPasswordPanel" Style="{StaticResource Field}" Margin="0,8,0,14">
-                        <TextBlock Text="Mot de passe sudo (vide = NOPASSWD)" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{ui:Tr Editor.SudoPassword}" Style="{StaticResource FieldLabel}"/>
                         <PasswordBox x:Name="SudoPasswordBox"/>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel x:Name="SuPanel" Style="{StaticResource Field}" Visibility="Collapsed">
-                    <TextBlock Text="Mot de passe root" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{ui:Tr Editor.RootPassword}" Style="{StaticResource FieldLabel}"/>
                     <PasswordBox x:Name="RootPasswordBox"/>
                 </StackPanel>
 
-                <!-- Groupes -->
-                <TextBlock Text="Groupes" Style="{StaticResource SectionHeader}" Margin="2,8,0,10"/>
+                <!-- Groups -->
+                <TextBlock Text="{ui:Tr Editor.Groups}" Style="{StaticResource SectionHeader}" Margin="2,8,0,10"/>
                 <StackPanel Style="{StaticResource Field}">
-                    <TextBlock Text="Séparés par des virgules (ex. prod, web, client A)" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{ui:Tr Editor.GroupsHint}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="TagsBox"/>
                 </StackPanel>
 
-                <!-- Clé d'hôte -->
+                <!-- Host key -->
                 <StackPanel x:Name="HostKeySection">
-                    <TextBlock Text="Clé d'hôte approuvée" Style="{StaticResource SectionHeader}" Margin="2,8,0,10"/>
+                    <TextBlock Text="{ui:Tr Editor.HostKey}" Style="{StaticResource SectionHeader}" Margin="2,8,0,10"/>
                     <ui:SettingCard x:Name="HostKeyCard" Icon="&#xE8D7;" Header="—">
-                        <Button Content="Oublier" Click="ForgetHostKey_Click"
-                                ToolTip="La prochaine connexion redemandera d'approuver la clé du serveur"/>
+                        <Button Content="{ui:Tr Editor.ForgetKey}" Click="ForgetHostKey_Click"
+                                ToolTip="{ui:Tr Editor.ForgetKeyTip}"/>
                     </ui:SettingCard>
                 </StackPanel>
 
-                <!-- Réglages spécifiques -->
-                <TextBlock Text="Paramètres spécifiques à ce serveur" Style="{StaticResource SectionHeader}" Margin="2,16,0,2"/>
-                <TextBlock Text="« Global » suit les paramètres de l'application ; tout autre choix prend le dessus pour ce serveur."
+                <!-- Server-specific settings -->
+                <TextBlock Text="{ui:Tr Editor.Overrides}" Style="{StaticResource SectionHeader}" Margin="2,16,0,2"/>
+                <TextBlock Text="{ui:Tr Editor.OverridesDesc}"
                            Style="{StaticResource Caption}" FontSize="13" Margin="2,0,0,10"/>
                 <StackPanel x:Name="OverridesPanel"/>
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Pied : test et validation -->
+        <!-- Footer: test and save -->
         <Border Grid.Row="1" Background="{StaticResource LayerBrush}" BorderBrush="{StaticResource StrokeBrush}"
                 BorderThickness="0,1,0,0" Padding="28,14">
             <Grid>
@@ -177,11 +176,11 @@
                     </StackPanel>
                 </Border>
                 <DockPanel Grid.Row="1">
-                    <Button x:Name="TestButton" DockPanel.Dock="Left" Tag="&#xE703;" Content="Tester la connexion"
+                    <Button x:Name="TestButton" DockPanel.Dock="Left" Tag="&#xE703;" Content="{ui:Tr Editor.Test}"
                             Click="Test_Click"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Annuler" MinWidth="100" Margin="0,0,8,0" IsCancel="True"/>
-                        <Button x:Name="SaveButton" Style="{StaticResource AccentButton}" Content="Enregistrer" MinWidth="120"
+                        <Button Content="{ui:Tr Common.Cancel}" MinWidth="100" Margin="0,0,8,0" IsCancel="True"/>
+                        <Button x:Name="SaveButton" Style="{StaticResource AccentButton}" Content="{ui:Tr Common.Save}" MinWidth="120"
                                 IsDefault="True" Click="Save_Click"/>
                     </StackPanel>
                 </DockPanel>

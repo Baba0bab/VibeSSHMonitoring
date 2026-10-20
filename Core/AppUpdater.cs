@@ -10,25 +10,24 @@ namespace VibeSSHMonitoring.Core;
 
 public enum AppUpdateState
 {
-    Unavailable,   // application non installée (exécutable de développement) : pas de mise à jour
+    Unavailable,   // application not installed (development build): no updates
     Idle,
     Checking,
     UpToDate,
     Downloading,
-    Ready,         // téléchargée, en attente d'installation
+    Ready,         // downloaded, waiting to be installed
     Error
 }
 
 /// <summary>
-/// Mises à jour de l'application depuis les Releases GitHub (Velopack) : recherche, téléchargement
-/// en arrière-plan (delta si possible), puis installation à la fermeture ou au redémarrage.
-/// Les événements arrivent sur un thread quelconque.
+/// Application updates from GitHub Releases (Velopack): check, background download (delta when
+/// possible), then install on exit or on restart. Events are raised on any thread.
 /// </summary>
 public sealed class AppUpdater
 {
     public const string RepositoryUrl = "https://github.com/Baba0bab/VibeSSHMonitoring";
 
-    /// <summary>Source de test (dossier local ou URL), à la place de GitHub.</summary>
+    /// <summary>Test source (local folder or URL) used instead of GitHub.</summary>
     private const string SourceOverrideVariable = "VIBESSHMONITORING_UPDATE_SOURCE";
 
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -51,7 +50,7 @@ public sealed class AppUpdater
         _manager = CreateManager(includePrerelease);
         State = _manager.IsInstalled ? AppUpdateState.Idle : AppUpdateState.Unavailable;
 
-        // Mise à jour déjà téléchargée lors d'une session précédente
+        // Update already downloaded during a previous session
         if (_manager.IsInstalled && _manager.UpdatePendingRestart is { } pending)
         {
             AvailableVersion = pending.Version.ToString();
@@ -76,7 +75,7 @@ public sealed class AppUpdater
         return new UpdateManager(source);
     }
 
-    /// <summary>Change le canal (stable seul, ou avec les préversions) ; la recherche suivante en tient compte.</summary>
+    /// <summary>Switches the channel (stable only, or with pre-releases); used by the next check.</summary>
     public void SetIncludePrerelease(bool include)
     {
         if (include == _includePrerelease)
@@ -87,13 +86,13 @@ public sealed class AppUpdater
             SetState(AppUpdateState.Idle);
     }
 
-    /// <summary>Recherche une nouvelle version et, s'il y en a une, la télécharge.</summary>
+    /// <summary>Checks for a new version and downloads it if there is one.</summary>
     public async Task CheckAndDownloadAsync(CancellationToken ct = default)
     {
         if (!_manager.IsInstalled || State is AppUpdateState.Ready)
             return;
         if (!await _gate.WaitAsync(0, ct))
-            return;   // une recherche est déjà en cours
+            return;   // a check is already running
         try
         {
             Error = null;
@@ -135,8 +134,8 @@ public sealed class AppUpdater
     }
 
     /// <summary>
-    /// Confie l'installation au programme de mise à jour, qui attend la fermeture de l'application
-    /// (60 s au plus) puis la relance si <paramref name="restart"/>. L'appelant doit ensuite quitter.
+    /// Hands the install over to the updater, which waits for the application to exit (60 s at
+    /// most), then restarts it if <paramref name="restart"/>. The caller must then exit.
     /// </summary>
     public bool ScheduleInstall(bool restart)
     {
@@ -144,7 +143,7 @@ public sealed class AppUpdater
             return false;
         try
         {
-            // null : la dernière version téléchargée (y compris lors d'une session précédente)
+            // null: the latest downloaded version (including from a previous session)
             _manager.WaitExitThenApplyUpdates(_pending?.TargetFullRelease, silent: !restart, restart: restart);
             return true;
         }
@@ -163,8 +162,8 @@ public sealed class AppUpdater
     }
 
     /// <summary>
-    /// Avant désinstallation : retire le lancement avec Windows et le cache du terminal.
-    /// Les serveurs et le coffre (%APPDATA%) sont conservés pour une réinstallation.
+    /// Before uninstalling: removes the start-with-Windows entry and the terminal cache.
+    /// Servers and the vault (%APPDATA%) are kept for a reinstall.
     /// </summary>
     public static void CleanupBeforeUninstall()
     {

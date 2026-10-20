@@ -1,4 +1,4 @@
-# Normalisation des fins de ligne : LF dans le dépôt, CRLF à l'extraction sous Windows
+# Line ending normalization: LF in the repository, CRLF on checkout on Windows
 * text=auto
 
 *.cs      text diff=csharp
@@ -14,7 +14,7 @@
 *.ps1     text eol=crlf
 *.sh      text eol=lf
 
-# Binaires
+# Binaries
 *.ico     binary
 *.png     binary
 *.jpg     binary

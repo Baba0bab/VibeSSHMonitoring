@@ -19,6 +19,8 @@
   <a href="README.md">🇬🇧 English</a> · 🇫🇷 Français
 </p>
 
+> L'interface est disponible en **anglais, français, allemand et espagnol**. Elle suit la langue d'affichage de Windows par défaut ; changez-la dans *Paramètres → Général → Langue*.
+
 ![Tableau de bord des serveurs](docs/screenshots/servers.png)
 
 ## Fonctionnalités
@@ -32,6 +34,7 @@
 - **Zone de notification** : la supervision continue fenêtre fermée ; notifications Windows (nouvelles mises à jour, serveur injoignable, clé d'hôte modifiée) ; recherche automatique des mises à jour (toutes les 6 / 12 / 24 h).
 - **Paramètres globaux + remplacements par serveur** pour la supervision, le terminal et les mises à jour.
 - **Installateur et mises à jour automatiques** : installateur par utilisateur (sans droits administrateur) ; l'application se met à jour toute seule depuis les Releases GitHub (petits téléchargements delta, installés à la fermeture).
+- **Multilingue** : anglais, français, allemand et espagnol.
 
 | Paramètres | Fiche d'un serveur |
 |---|---|
@@ -109,7 +112,7 @@ dotnet test Tests                   # tests unitaires
 
 Une copie lancée avec `dotnet run` n'est pas installée : les mises à jour automatiques y sont désactivées (la page des paramètres l'indique).
 
-**Les tests** couvrent le coffre (mot de passe maître, mauvais mot de passe, changements de mode), la lecture des sorties (`apt list`, `/proc`), la résolution des réglages, les arguments SSH et la syntaxe de chaque script shell envoyé aux serveurs, vérifiée avec le `sh` de Git for Windows s'il est installé.
+**Les tests** couvrent le coffre (mot de passe maître, mauvais mot de passe, changements de mode), la lecture des sorties (`apt list`, `/proc`), la résolution des réglages, les arguments SSH, les traductions (mêmes clés et mêmes paramètres dans chaque langue) et la syntaxe de chaque script shell envoyé aux serveurs, vérifiée avec le `sh` de Git for Windows s'il est installé.
 
 **Données de test isolées** : la variable `VIBESSHMONITORING_HOME` lance l'application avec une configuration et un coffre séparés :
 
@@ -122,7 +125,7 @@ $env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-test"; dotnet run
 L'installateur et les paquets de mise à jour sont produits avec [Velopack](https://velopack.io) (`vpk`, version figée dans [`dotnet-tools.json`](dotnet-tools.json)) par [`scripts/pack.ps1`](scripts/pack.ps1), le même script que le workflow de release :
 
 ```powershell
-./scripts/pack.ps1 -Version 1.0.0          # → Releases\VibeSSHMonitoring-win-Setup.exe, -Portable.zip, *.nupkg
+./scripts/pack.ps1 -Version 1.0.1          # → Releases\VibeSSHMonitoring-win-Setup.exe, -Portable.zip, *.nupkg
 ```
 
 Les notes de version intégrées au paquet (et affichées dans l'application) viennent de la section `## [x.y.z]` correspondante de [CHANGELOG.md](CHANGELOG.md). Si les paquets de la version précédente sont dans `Releases\`, un paquet delta est aussi généré.
@@ -139,8 +142,8 @@ $env:VIBESSHMONITORING_UPDATE_SOURCE = "C:\chemin\vers\Releases"
 Les versions sont construites par GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) : ajoutez une section `## [x.y.z] - date` dans [CHANGELOG.md](CHANGELOG.md), commitez, puis poussez un tag de version. Le workflow lance les tests, construit l'installateur et les paquets de mise à jour (complet + delta), puis les publie sur GitHub Releases, les copies installées récupèrent la mise à jour d'elles-mêmes. Un tag avec suffixe (`v1.1.0-beta.1`) crée une préversion, proposée uniquement aux utilisateurs qui ont activé les préversions.
 
 ```powershell
-git tag v1.0.0
-git push origin v1.0.0
+git tag -a v1.0.1 -m "Vibe SSH Monitoring 1.0.1"
+git push origin v1.0.1
 ```
 
 ## Organisation du code
@@ -148,6 +151,7 @@ git push origin v1.0.0
 ```
 ├─ Program.cs            point d'entrée (crochets de l'installateur, puis WPF)
 ├─ Core/                 SSH, commandes distantes, coffre, configuration, mises à jour (sans interface)
+│  ├─ Loc.cs            traductions (Localization/*.json, repli sur l'anglais)
 │  ├─ SshConnection.cs   connexion, vérification de la clé d'hôte, exécution simple / sudo / su
 │  ├─ RemoteCommands.cs  sonde d'état, commandes apt, lecture des résultats
 │  ├─ SecretVault.cs     DPAPI, mot de passe maître (Argon2id + AES-GCM) ou clair
@@ -156,6 +160,7 @@ git push origin v1.0.0
 │  └─ AppUpdater.cs      mises à jour depuis les Releases GitHub (Velopack)
 ├─ UI/                   modèle de vue, dialogues, icône de notification, vue du terminal intégré
 ├─ Assets/terminal/      page xterm.js chargée hors ligne par WebView2
+├─ Localization/         textes de l'interface : en.json (référence), fr.json, de.json, es.json
 ├─ Themes/Theme.xaml     couleurs et styles des contrôles
 ├─ ServerManager.cs      boucle de supervision, actions, actions groupées, notifications
 ├─ AppController.cs      cycle de vie : config, coffre, fenêtre, zone de notification, verrouillage
@@ -167,7 +172,7 @@ git push origin v1.0.0
 
 ## Contribuer
 
-Signalements de bugs, idées et pull requests sont les bienvenus, voir [CONTRIBUTING.md](CONTRIBUTING.md). Mainteneurs : procédure de publication dans [docs/RELEASING.md](docs/RELEASING.md).
+Signalements de bugs, idées, traductions et pull requests sont les bienvenus, voir [CONTRIBUTING.md](CONTRIBUTING.md). Pour ajouter une langue, copiez `Localization/en.json` vers `<code>.json`, traduisez les valeurs et ajoutez la langue à `Loc.Languages` dans `Core/Loc.cs`. Mainteneurs : procédure de publication dans [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Licence
 

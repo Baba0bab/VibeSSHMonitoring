@@ -1,65 +1,85 @@
-# Vibe SSH Monitoring : notes pour Claude (et les contributeurs)
+# Vibe SSH Monitoring: notes for Claude (and contributors)
 
-Application Windows (C# / .NET 10 / WPF) de supervision et de mise à jour de serveurs Debian / Ubuntu en SSH.
-Nom affiché **Vibe SSH Monitoring**, identifiant **VibeSSHMonitoring** (exe, namespace, paquet), dépôt
-https://github.com/Baba0bab/VibeSSHMonitoring, licence GPL-3.0-or-later. Interface et commentaires du code
-en **français** ; documentation publique **bilingue** (README.md anglais + README.fr.md, CONTRIBUTING, RELEASING).
+Windows application (C# / .NET 10 / WPF) that monitors and updates Debian / Ubuntu servers over SSH.
+Display name **Vibe SSH Monitoring**, identifier **VibeSSHMonitoring** (exe, namespace, package), repository
+https://github.com/Baba0bab/VibeSSHMonitoring, license GPL-3.0-or-later. **English is the project's default
+language**: code comments, commit messages, CHANGELOG / release notes, GitHub texts and this file. The public
+documentation is **bilingual** (README.md English + README.fr.md, CONTRIBUTING and RELEASING with an English then
+a French section). The interface is translated into English, French, German and Spanish.
 
-## Commandes
+## Commands
 
 ```powershell
-dotnet build VibeSSHMonitoring.slnx -c Release      # doit donner 0 avertissement
-dotnet test Tests                                    # 21+ tests (coffre, parsing, scripts shell via le sh de Git)
-$env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-test"; dotnet run   # configuration et coffre isolés
-./scripts/pack.ps1 -Version 1.2.3 -OutputDir $env:TEMP\vsm-pack  # installateur + paquets Velopack, sans publier
+dotnet build VibeSSHMonitoring.slnx -c Release      # must give 0 warnings
+dotnet test Tests                                    # 26+ tests (vault, parsing, translations, shell scripts via Git's sh)
+$env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-test"; dotnet run   # isolated configuration and vault
+./scripts/pack.ps1 -Version 1.2.3 -OutputDir $env:TEMP\vsm-pack  # installer + Velopack packages, publishes nothing
 ```
 
-Arrêter l'application avant de compiler (`Get-Process VibeSSHMonitoring | Stop-Process`) : l'exe en cours verrouille la sortie.
+Stop the dev build before compiling (`Get-Process VibeSSHMonitoring | Stop-Process`): the running exe locks the output.
+The user may have the installed copy running (`%LOCALAPPDATA%\VibeSSHMonitoring\current\`): don't kill it.
 
-## Organisation
+## Layout
 
-- `Core/` : sans WPF. `SshConnection.cs` (connexion, clé d'hôte, exécution simple / sudo / su), `RemoteCommands.cs` (sonde, apt, parsing), `SecretVault.cs` (DPAPI / mot de passe maître / clair), `AppUpdater.cs` (Velopack), `TerminalSession.cs`, `ExternalTerminal.cs`.
-- `ServerManager.cs` (supervision, actions), `AppController.cs` (cycle de vie, coffre, zone de notification, mises à jour), `MainWindow.xaml` (pages), `ServerEditWindow.xaml` (fiche serveur), `Program.cs` (Velopack avant WPF).
-- `Themes/Theme.xaml` : thème hérité de GoveeScreen (projet de l'auteur, `C:\serveurs\GoveeScreenV2`).
-- `Assets/terminal/` : xterm.js hors ligne (WebView2). `scripts/pack.ps1` : packaging. `tools/ui-test/` : pilotage de l'interface.
+- `Core/`: no WPF. `SshConnection.cs` (connection, host key, plain / sudo / su execution), `RemoteCommands.cs` (probe, apt, parsing), `SecretVault.cs` (DPAPI / master password / plain), `AppUpdater.cs` (Velopack), `Loc.cs` (translations), `TerminalSession.cs`, `ExternalTerminal.cs`.
+- `ServerManager.cs` (monitoring, actions), `AppController.cs` (lifecycle, vault, tray, updates, `Restart()`), `MainWindow.xaml` (pages), `ServerEditWindow.xaml` (server editor), `Program.cs` (Velopack, then `Loc.Initialize`, then WPF).
+- `Localization/*.json`: interface texts, flat `"Area.Key": "text"` with `{0}` placeholders, embedded in the exe.
+- `Themes/Theme.xaml`: theme inherited from GoveeScreen (another project of the author, `C:\serveurs\GoveeScreenV2`).
+- `Assets/terminal/`: offline xterm.js (WebView2). `scripts/pack.ps1`: packaging. `tools/ui-test/`: UI automation.
 
-## Invariants à ne jamais changer
+## Translations
 
-Inscrits dans chaque copie installée ou dans les données des utilisateurs :
-- entropie DPAPI `"SshVibeMonitoring.v1"` (`Core/SecretVault.cs`), sinon les coffres existants deviennent illisibles ;
-- dossiers `%APPDATA%\VibeSSHMonitoring` (config, coffre) et `%LOCALAPPDATA%\VibeSSHMonitoring.Cache` ; la migration depuis l'ancien nom `SshVibeMonitoring` reste en place ;
-- `%LOCALAPPDATA%\VibeSSHMonitoring` appartient à l'installateur (Velopack) : n'y rien écrire ;
-- identifiant de paquet `VibeSSHMonitoring`, canal `win`, `AppUpdater.RepositoryUrl`, noms des fichiers de release ;
-- aucun secret dans une ligne de commande, un journal ou `config.json` (sudo : mot de passe sur stdin ; commandes root via `sudo -- sh -c` avec `exec </dev/null`) ;
-- commandes envoyées aux serveurs toujours non interactives (apt : `DEBIAN_FRONTEND=noninteractive`, `--force-confold`).
+- Never hard-code interface text: `Loc.T("Area.Key")` / `Loc.T("Area.Key", args)` in C#, `{ui:Tr Area.Key}` in XAML (`UI/TrExtension.cs`).
+- Add every new key to **all** files of `Localization/` (`en.json` is the reference and the fallback). `LocalizationTests` fails if a language misses a key or a placeholder, or has a different number of `|` separators.
+- Texts are read when an element is built: a language change needs a restart (`AppController.Restart()`, which starts the exe with `--wait-for <pid>`).
+- The button names **Check updates**, **Update** and **Open SSH** stay in English in every language.
+- `Loc.Culture` formats numbers and dates; `Format.SizeUnits` holds the size units (`KB|MB|…`, `Ko|Mo|…` in French).
+- A new language: copy `en.json`, translate it, add it to `Loc.Languages`.
 
-## Vérifier un changement
+## Invariants that must never change
 
-- **Pas de serveur Linux ici** (ni WSL ni Docker) : tout ce qui touche à un vrai serveur doit être validé par l'utilisateur sur ses serveurs. Les scripts shell sont au moins vérifiés par les tests (`sh -n` du sh de Git).
-- **Interface** : lancer avec `VIBESSHMONITORING_HOME` (ne jamais toucher la vraie config), puis
-  `tools/ui-test/Invoke-UiElement.ps1` (clic par nom, `-AutomationId x -Value y`, `-List`) et
-  `tools/ui-test/Capture-Window.ps1 -Out shot.png` (capture même masquée). Les captures d'écran du bureau
-  (computer-use) masquent les autres fenêtres de l'utilisateur et ne montrent pas l'application : utiliser ces scripts.
-  Les boutons à glyphe ont pour nom leur caractère (`[char]0xE712` = « ⋯ ») ; les dialogues modaux construits en code (`UI/Dialogs.cs`) ne sont pas toujours exposés à UI Automation.
-- **Installateur et mises à jour** (testé de bout en bout le 2026-10-20) : `pack.ps1` deux versions dans un même dossier (delta),
-  installer la première avec `VibeSSHMonitoring-win-Setup.exe --silent` en définissant `VIBESSHMONITORING_HOME` et
-  `VIBESSHMONITORING_UPDATE_SOURCE=<dossier des paquets>`, rechercher depuis les paramètres, puis **désinstaller**
-  (`%LOCALAPPDATA%\VibeSSHMonitoring\Update.exe uninstall --silent`) pour laisser la machine propre.
+Baked into every installed copy or into users' data:
+- DPAPI entropy `"SshVibeMonitoring.v1"` (`Core/SecretVault.cs`), otherwise existing vaults become unreadable;
+- folders `%APPDATA%\VibeSSHMonitoring` (config, vault) and `%LOCALAPPDATA%\VibeSSHMonitoring.Cache`; the migration from the old `SshVibeMonitoring` name stays;
+- `%LOCALAPPDATA%\VibeSSHMonitoring` belongs to the installer (Velopack): write nothing there;
+- package id `VibeSSHMonitoring`, channel `win`, `AppUpdater.RepositoryUrl`, release file names;
+- the setting values stored in `config.json` (enum names, `Language` codes such as `"system"`, `"fr"`);
+- no secret on a command line, in a log or in `config.json` (sudo: password on stdin; root commands through `sudo -- sh -c` with `exec </dev/null`);
+- commands sent to servers are always non-interactive (apt: `DEBIAN_FRONTEND=noninteractive`, `--force-confold`).
 
-## Publier une version
+## Checking a change
 
-Procédure complète : [docs/RELEASING.md](docs/RELEASING.md). En bref : section `## [X.Y.Z] - AAAA-MM-JJ` dans
-CHANGELOG.md (titre exact : c'est la source des notes de version), commit sur `main`, tag annoté `vX.Y.Z`, push du tag →
-`.github/workflows/release.yml` construit et publie ; suivre avec `gh run watch`, vérifier les fichiers avec `gh release view`.
+- **No Linux server here** (no WSL, no Docker): anything touching a real server must be validated by the user on their servers. Shell scripts are at least checked by the tests (`sh -n` with Git's sh).
+- **Interface**: start with `VIBESSHMONITORING_HOME` (never touch the real config), then
+  `tools/ui-test/Invoke-UiElement.ps1` (click by name, `-AutomationId x -Value y`, `-List`) and
+  `tools/ui-test/Capture-Window.ps1 -Out shot.png` (captures even a hidden window). Desktop screenshots
+  (computer use) hide the user's other windows and don't show the app: use these scripts.
+  Element names depend on the interface language: set `"Language": "en"` in the test `config.json` for stable names.
+  Glyph buttons are named after their character (`[char]0xE712` = "⋯"); modal dialogs built in code (`UI/Dialogs.cs`) are not always exposed to UI Automation.
+- **Installer and updates** (tested end to end on 2026-10-20): `pack.ps1` two versions into the same folder (delta),
+  install the first one with `VibeSSHMonitoring-win-Setup.exe --silent` with `VIBESSHMONITORING_HOME` and
+  `VIBESSHMONITORING_UPDATE_SOURCE=<packages folder>` set, check from the settings, then **uninstall**
+  (`%LOCALAPPDATA%\VibeSSHMonitoring\Update.exe uninstall --silent`) to leave the machine clean.
+  Careful: the user has their own installed copy; a test install on top of it breaks it. Prefer testing on a machine
+  or account without it, or ask first.
 
-**Toujours demander la confirmation explicite de l'utilisateur avant** `git push`, la création ou le push d'un tag,
-`gh release create/edit/delete` ou `gh repo create` : c'est public, et une release est téléchargée automatiquement par
-toutes les copies installées. Ne jamais supprimer une release publiée : en cas de problème, publier un correctif.
+## Publishing a release
 
-## Pièges connus
+Full procedure: [docs/RELEASING.md](docs/RELEASING.md). In short: a `## [X.Y.Z] - YYYY-MM-DD` section in
+CHANGELOG.md (exact heading: it is the source of the release notes, **written in English**), commit on `main`,
+annotated tag `vX.Y.Z`, push the tag → `.github/workflows/release.yml` builds and publishes; follow with `gh run watch`,
+check the files with `gh release view`.
 
-- Bash (outil) : les heredocs contenant des apostrophes échouent parfois → écrire le script dans un fichier.
-- Scripts `.ps1` avec accents : enregistrer en UTF-8 **avec BOM** (Windows PowerShell 5.1), cf. `.editorconfig`.
-- PowerShell : les noms de variables ignorent la casse (`$window` = paramètre `$Window`) ; `$matches` est réservé.
-- WebView2 (terminal intégré) s'affiche au-dessus du contenu WPF : pas d'animation ni de superposition sur cette page.
-- Remplacements en Python : utiliser des chaînes brutes (`r'''…'''`) pour le C# contenant `\n` / `\r`.
+**Always ask the user for explicit confirmation before** `git push`, creating or pushing a tag,
+`gh release create/edit/delete`, `gh repo create` or `gh repo edit`: it is public, and a release is downloaded
+automatically by every installed copy. Never delete a published release: if something is wrong, publish a fix.
+
+## Known pitfalls
+
+- Bash (tool): heredocs containing apostrophes sometimes fail → write the script to a file.
+- `.ps1` scripts with non-ASCII characters: save as UTF-8 **with BOM** (Windows PowerShell 5.1), see `.editorconfig`.
+- PowerShell: variable names are case-insensitive (`$window` = parameter `$Window`); `$matches` is reserved.
+- WebView2 (built-in terminal) is drawn above the WPF content: no animation or overlay on that page.
+- Python replacements: use raw strings (`r'''…'''`) for C# containing `\n` / `\r`.
+- `MainWindow.xaml.cs` and `ServerEditWindow.xaml.cs` contain raw private-use glyph characters (Segoe icons): edit
+  them with targeted replacements, never by rewriting the whole file from a copy.

@@ -6,7 +6,7 @@ using System.IO;
 
 namespace VibeSSHMonitoring.Core;
 
-/// <summary>Génération (ssh-keygen de Windows) et déploiement d'une clé SSH ed25519.</summary>
+/// <summary>Generation (Windows ssh-keygen) and deployment of an ed25519 SSH key.</summary>
 public static class SshKeys
 {
     public static string DefaultKeyPath => Path.Combine(
@@ -35,14 +35,14 @@ public static class SshKeys
         string error = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
         if (process.ExitCode != 0 || !HasKeyPair(path))
-            throw new InvalidOperationException($"ssh-keygen a échoué : {error.Trim()}");
+            throw new InvalidOperationException(Loc.T("Keys.KeygenFailed", error.Trim()));
     }
 
     public static string ReadPublicKey(string path) => File.ReadAllText(path + ".pub").Trim();
 
     /// <summary>
-    /// Ajoute la clé publique (lue sur l'entrée standard, jamais dans la ligne de commande)
-    /// à ~/.ssh/authorized_keys si elle n'y est pas déjà.
+    /// Adds the public key (read from standard input, never from the command line) to
+    /// ~/.ssh/authorized_keys when it is not there yet.
     /// </summary>
     public const string InstallScript =
         "umask 077; mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && IFS= read -r K && " +

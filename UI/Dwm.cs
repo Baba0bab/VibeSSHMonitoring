@@ -6,8 +6,8 @@ using System.Runtime.InteropServices;
 namespace VibeSSHMonitoring.UI;
 
 /// <summary>
-/// Attributs DWM du cadre de fenêtre (mode sombre, couleurs de la barre de titre).
-/// Les attributs non pris en charge (Windows 10) sont simplement ignorés par le système.
+/// DWM attributes of the window frame (dark mode, title bar colors).
+/// Unsupported attributes (Windows 10) are simply ignored by the system.
 /// </summary>
 internal static class Dwm
 {
@@ -24,6 +24,6 @@ internal static class Dwm
             DwmSetWindowAttribute(hwnd, attribute, ref value, sizeof(int));
     }
 
-    /// <summary>Couleur au format COLORREF (0x00BBGGRR) attendu par DWM.</summary>
+    /// <summary>Color in the COLORREF format (0x00BBGGRR) expected by DWM.</summary>
     public static int ToColorRef(byte r, byte g, byte b) => r | (g << 8) | (b << 16);
 }

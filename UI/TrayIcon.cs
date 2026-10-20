@@ -4,22 +4,23 @@
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
+using VibeSSHMonitoring.Core;
+
 namespace VibeSSHMonitoring.UI;
 
-/// <summary>État reflété par le menu de la zone de notification, relu à chaque ouverture.</summary>
+/// <summary>State shown by the tray menu, read again each time it opens.</summary>
 public record TrayState(string Status, bool CanLock, bool IsLocked, bool HasServers, string? UpdateVersion);
 
 /// <summary>
-/// Icône de la zone de notification : clic gauche = ouvrir la fenêtre,
-/// clic droit = actions rapides (vérifier, actualiser, coffre) sans ouvrir la fenêtre,
-/// notifications Windows (mises à jour disponibles, serveur injoignable).
-/// Entièrement en Win32 (Shell_NotifyIcon, fenêtre de messages, menu natif sombre) :
-/// ni WinForms ni le moteur de rendu WPF (~65 Mo, jamais rendus une fois démarrés) ne sont
-/// chargés pour l'icône ou son menu.
+/// Notification area icon: left click = open the window, right click = quick actions (check,
+/// refresh, vault) without opening the window, Windows notifications (updates available,
+/// unreachable server). Pure Win32 (Shell_NotifyIcon, message window, native dark menu):
+/// neither WinForms nor the WPF rendering engine (~65 MB, never released once started) are
+/// loaded for the icon or its menu.
 /// </summary>
 public sealed class TrayIcon : IDisposable
 {
-    // ===== Interop : icône, fenêtre de messages, menu =====
+    // ===== Interop: icon, message window, menu =====
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NOTIFYICONDATA
@@ -85,7 +86,7 @@ public sealed class TrayIcon : IDisposable
     [DllImport("user32.dll")]
     private static extern bool DestroyWindow(IntPtr hwnd);
 
-    // Unicode comme la classe de fenêtre : la version ANSI tronquerait les textes (titre réduit à « G »)
+    // Unicode like the window class: the ANSI version would truncate texts (title cut down to "V")
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr DefWindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
 
@@ -157,19 +158,19 @@ public sealed class TrayIcon : IDisposable
     private const int MF_STRING = 0, MF_GRAYED = 0x1, MF_CHECKED = 0x8, MF_POPUP = 0x10, MF_SEPARATOR = 0x800;
     private const int TPM_RIGHTALIGN = 0x8, TPM_RIGHTBUTTON = 0x2, TPM_NONOTIFY = 0x80, TPM_RETURNCMD = 0x100;
     private const int LOAD_LIBRARY_SEARCH_SYSTEM32 = 0x800;
-    private static readonly IntPtr AppIconId = 32512;   // IDI_APPLICATION : icône embarquée par l'apphost .NET
+    private static readonly IntPtr AppIconId = 32512;   // IDI_APPLICATION: icon embedded by the .NET apphost
     private static readonly int TaskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
 
-    // Identifiants des commandes du menu
+    // Menu command identifiers
     private const int CmdOpen = 1, CmdCheckAll = 2, CmdRefreshAll = 3, CmdLock = 4, CmdExit = 5, CmdInstallUpdate = 6;
 
-    // ===== État =====
+    // ===== State =====
 
     private readonly Func<TrayState> _getState;
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
-    private readonly WndProcDelegate _wndProc;    // gardé en champ : appelé depuis le code natif
+    private readonly WndProcDelegate _wndProc;    // kept in a field: called from native code
     private readonly IntPtr _module = GetModuleHandle(IntPtr.Zero);
-    private readonly IntPtr _window;              // fenêtre invisible qui reçoit les clics sur l'icône
+    private readonly IntPtr _window;              // invisible window that receives the icon clicks
     private readonly IntPtr _icon;
     private string _tooltip = "Vibe SSH Monitoring";
 
@@ -185,9 +186,9 @@ public sealed class TrayIcon : IDisposable
         _getState = getState;
         EnableDarkMenus();
 
-        // Fenêtre Win32 jamais affichée, hors barre des tâches et Alt+Tab. De premier niveau,
-        // et non « message-only », pour recevoir TaskbarCreated. Pas de HwndSource : il
-        // démarrerait le moteur de rendu WPF dès le lancement.
+        // Win32 window that is never shown, outside the taskbar and Alt+Tab. Top-level rather
+        // than "message-only", to receive TaskbarCreated. No HwndSource: it would start the
+        // WPF rendering engine at launch.
         _wndProc = WndProc;
         var windowClass = new WNDCLASSEX
         {
@@ -205,9 +206,9 @@ public sealed class TrayIcon : IDisposable
     }
 
     /// <summary>
-    /// Menus natifs en sombre, assortis à l'interface : SetPreferredAppMode(ForceDark) et
-    /// FlushMenuThemes de uxtheme (n° 135 et 136). Non documentées mais stables depuis
-    /// Windows 10 1903 ; absentes, le menu reste simplement clair.
+    /// Dark native menus, matching the interface: SetPreferredAppMode(ForceDark) and
+    /// FlushMenuThemes from uxtheme (ordinals 135 and 136). Undocumented but stable since
+    /// Windows 10 1903; when missing, the menu simply stays light.
     /// </summary>
     private static void EnableDarkMenus()
     {
@@ -223,9 +224,9 @@ public sealed class TrayIcon : IDisposable
     }
 
     /// <summary>
-    /// Icône de l'exe réduite par Windows à la taille exacte de la zone de notification
-    /// (nette en HiDPI). LoadIconWithScaleDown vient des Common Controls v6 (cf. app.manifest) ;
-    /// à défaut, LoadImage fait la même chose avec une réduction moins soignée.
+    /// The exe icon, scaled down by Windows to the exact notification area size (sharp on HiDPI).
+    /// LoadIconWithScaleDown comes from Common Controls v6 (see app.manifest); otherwise
+    /// LoadImage does the same with a less careful downscale.
     /// </summary>
     private IntPtr LoadAppIcon()
     {
@@ -241,7 +242,7 @@ public sealed class TrayIcon : IDisposable
         return LoadImage(_module, AppIconId, IMAGE_ICON, size, size, 0);
     }
 
-    /// <summary>Info-bulle de l'icône (limitée à 127 caractères par Windows).</summary>
+    /// <summary>Icon tooltip (limited to 127 characters by Windows).</summary>
     public void SetStatus(string status)
     {
         string text = $"Vibe SSH Monitoring — {status}";
@@ -252,7 +253,7 @@ public sealed class TrayIcon : IDisposable
         Notify(NIM_MODIFY, NIF_TIP);
     }
 
-    /// <summary>Notification Windows (bulle, ou toast sous Windows 10/11) ; un clic ouvre la fenêtre.</summary>
+    /// <summary>Windows notification (balloon, or toast on Windows 10/11); a click opens the window.</summary>
     public void ShowNotification(string title, string text, bool warning = false)
     {
         Notify(NIM_MODIFY, NIF_INFO, title.Length > 63 ? title[..63] : title, text.Length > 255 ? text[..255] : text,
@@ -278,8 +279,8 @@ public sealed class TrayIcon : IDisposable
     }
 
     /// <summary>
-    /// Appelée depuis le code natif : les actions repassent par le Dispatcher, pour qu'une
-    /// exception y suive le chemin normal de WPF au lieu de traverser des frames natives.
+    /// Called from native code: actions go back through the Dispatcher, so that an exception
+    /// follows the normal WPF path instead of crossing native frames.
     /// </summary>
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam)
     {
@@ -299,14 +300,14 @@ public sealed class TrayIcon : IDisposable
         }
         if (msg == TaskbarCreatedMessage)
         {
-            // Explorateur redémarré : la zone de notification est vide, on y remet l'icône
+            // Explorer restarted: the notification area is empty, add the icon again
             Notify(NIM_ADD, NIF_MESSAGE | NIF_ICON | NIF_TIP);
             return IntPtr.Zero;
         }
         return DefWindowProc(hwnd, msg, wParam, lParam);
     }
 
-    /// <summary>Menu reconstruit à chaque ouverture depuis l'état courant, puis détruit.</summary>
+    /// <summary>Menu rebuilt from the current state each time it opens, then destroyed.</summary>
     private void ShowMenu()
     {
         var state = _getState();
@@ -315,25 +316,25 @@ public sealed class TrayIcon : IDisposable
         {
             AppendMenu(menu, MF_STRING | MF_GRAYED, IntPtr.Zero, $"Vibe SSH Monitoring · {state.Status}");
             AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
-            AppendMenu(menu, MF_STRING, CmdOpen, "Ouvrir Vibe SSH Monitoring");
-            AppendMenu(menu, MF_STRING | (state.HasServers ? 0 : MF_GRAYED), CmdCheckAll, "Rechercher les mises à jour (tous)");
-            AppendMenu(menu, MF_STRING | (state.HasServers ? 0 : MF_GRAYED), CmdRefreshAll, "Actualiser tous les serveurs");
+            AppendMenu(menu, MF_STRING, CmdOpen, Loc.T("Tray.Open"));
+            AppendMenu(menu, MF_STRING | (state.HasServers ? 0 : MF_GRAYED), CmdCheckAll, Loc.T("Tray.CheckAll"));
+            AppendMenu(menu, MF_STRING | (state.HasServers ? 0 : MF_GRAYED), CmdRefreshAll, Loc.T("Tray.RefreshAll"));
             if (state.UpdateVersion is not null)
             {
                 AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
-                AppendMenu(menu, MF_STRING, CmdInstallUpdate, $"Installer la version {state.UpdateVersion} et redémarrer");
+                AppendMenu(menu, MF_STRING, CmdInstallUpdate, Loc.T("Tray.InstallUpdate", state.UpdateVersion));
             }
             if (state.CanLock)
             {
                 AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
-                AppendMenu(menu, MF_STRING, CmdLock, state.IsLocked ? "Déverrouiller le coffre…" : "Verrouiller le coffre");
+                AppendMenu(menu, MF_STRING, CmdLock, Loc.T(state.IsLocked ? "Tray.Unlock" : "Tray.Lock"));
             }
             AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
-            AppendMenu(menu, MF_STRING, CmdExit, "Quitter");
-            SetMenuDefaultItem(menu, CmdOpen, 0);   // en gras, comme le clic gauche
+            AppendMenu(menu, MF_STRING, CmdExit, Loc.T("Tray.Exit"));
+            SetMenuDefaultItem(menu, CmdOpen, 0);   // bold, like the left click
 
-            // Premier plan pendant le menu, sinon il ne se ferme pas quand on clique ailleurs ;
-            // le WM_NULL qui suit est la séquence documentée pour les menus de zone de notification
+            // Foreground while the menu is open, otherwise it does not close when clicking
+            // elsewhere; the following WM_NULL is the documented sequence for tray menus
             SetForegroundWindow(_window);
             GetCursorPos(out POINT cursor);
             int flags = TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY |
@@ -344,7 +345,7 @@ public sealed class TrayIcon : IDisposable
         }
         finally
         {
-            DestroyMenu(menu);   // détruit aussi les sous-menus attachés
+            DestroyMenu(menu);   // also destroys the attached submenus
         }
     }
 

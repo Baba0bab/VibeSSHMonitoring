@@ -11,8 +11,8 @@ using VibeSSHMonitoring.UI;
 namespace VibeSSHMonitoring;
 
 /// <summary>
-/// Supervision et actions sur les serveurs. Tout part du thread UI : le travail réseau
-/// s'exécute en arrière-plan et les cartes sont mises à jour au retour des await.
+/// Monitoring and actions on the servers. Everything starts from the UI thread: network work
+/// runs in the background and the cards are updated when the awaits return.
 /// </summary>
 public sealed class ServerManager : IDisposable
 {
@@ -29,7 +29,7 @@ public sealed class ServerManager : IDisposable
 
     public ObservableCollection<ServerViewModel> Servers { get; } = new();
 
-    /// <summary>État global changé (nombre en ligne, mises à jour) : menu, icône.</summary>
+    /// <summary>Global state changed (number online, updates): menu, icon.</summary>
     public event Action? SummaryChanged;
 
     public ServerManager(AppController app)
@@ -64,10 +64,10 @@ public sealed class ServerManager : IDisposable
     private void ResetConnection(Guid id)
     {
         if (_connections.Remove(id, out var connection))
-            _ = Task.Run(connection.Dispose);   // la déconnexion peut prendre un moment
+            _ = Task.Run(connection.Dispose);   // disconnecting may take a moment
     }
 
-    // ===== Liste des serveurs =====
+    // ===== Server list =====
 
     public ServerViewModel Add(ServerConfig config, ServerSecrets secrets)
     {
@@ -77,7 +77,7 @@ public sealed class ServerManager : IDisposable
             _app.Vault.Set(config.Id, secrets);
         var vm = new ServerViewModel(config, _app.Config.EffectiveFor(config));
         Servers.Add(vm);
-        // Premier relevé interactif : la clé d'hôte, si elle n'a pas été approuvée au test, est proposée tout de suite
+        // Interactive first reading: if the host key was not approved during a test, it is offered right away
         _ = RefreshNowAsync(vm);
         return vm;
     }
@@ -106,7 +106,7 @@ public sealed class ServerManager : IDisposable
         SummaryChanged?.Invoke();
     }
 
-    /// <summary>Réglages globaux modifiés : tous les serveurs recalculent leurs réglages effectifs.</summary>
+    /// <summary>Global settings changed: every server recomputes its effective settings.</summary>
     public void ApplySettings()
     {
         foreach (var vm in Servers)
@@ -114,7 +114,7 @@ public sealed class ServerManager : IDisposable
         _nextRefresh.Clear();
     }
 
-    /// <summary>Coffre (dé)verrouillé : les connexions repartent avec les nouveaux secrets.</summary>
+    /// <summary>Vault (un)locked: connections restart with the new secrets.</summary>
     public void OnVaultChanged()
     {
         foreach (var id in _connections.Keys.ToList())
@@ -124,7 +124,7 @@ public sealed class ServerManager : IDisposable
         Tick();
     }
 
-    // ===== Boucle de supervision =====
+    // ===== Monitoring loop =====
 
     private void Tick()
     {
@@ -142,19 +142,19 @@ public sealed class ServerManager : IDisposable
                 continue;
             }
 
-            // apt update automatique, pour un serveur joignable
+            // automatic apt update, for a reachable server
             int hours = vm.Settings.AutoCheckHours;
             if (hours > 0 && vm.IsOnline && !vm.NoApt &&
                 (vm.Config.LastUpdateCheckUtc is not { } last || now - last > TimeSpan.FromHours(hours)) &&
                 (!_nextAutoCheck.TryGetValue(vm.Id, out var retry) || retry <= now))
             {
-                _nextAutoCheck[vm.Id] = now.AddHours(1);   // en cas d'échec, pas avant une heure
+                _nextAutoCheck[vm.Id] = now.AddHours(1);   // after a failure, not before an hour
                 _ = CheckUpdatesAsync(vm, interactive: false);
             }
         }
     }
 
-    /// <summary>Relevé de l'état : test du port SSH puis sonde (système, ressources, mises à jour).</summary>
+    /// <summary>Reads the state: SSH port test, then probe (system, resources, updates).</summary>
     public async Task RefreshAsync(ServerViewModel vm, bool background = false)
     {
         if (!_refreshing.Add(vm.Id))
@@ -204,7 +204,7 @@ public sealed class ServerManager : IDisposable
             double? latency = await Task.Run(() => PingAsync(config.Host.Trim(), config.Port, ct), ct);
             vm.LatencyMs = latency;
             if (latency is null)
-                throw new SshOperationException(SshErrorKind.Unreachable, $"Aucune réponse sur le port {config.Port}.");
+                throw new SshOperationException(SshErrorKind.Unreachable, Loc.T("Monitor.NoResponse", config.Port));
         }
         else
         {
@@ -223,7 +223,7 @@ public sealed class ServerManager : IDisposable
         if (settings.NotifyUpdates && vm.UpdateCount is > 0 and var count && previousUpdates is { } before && count > before)
             _app.NotifyUpdates(vm.Name, count, vm.SecurityCount);
         if (previousState is ServerState.Offline && settings.NotifyOffline)
-            _app.Notify("Serveur de nouveau joignable", $"{vm.Name} répond à nouveau.");
+            _app.Notify(Loc.T("Notify.BackOnlineTitle"), Loc.T("Notify.BackOnlineText", vm.Name));
     }
 
     private static async Task<double?> PingAsync(string host, int port, CancellationToken ct)
@@ -252,7 +252,7 @@ public sealed class ServerManager : IDisposable
                 vm.State = ServerState.Offline;
                 vm.LatencyMs = null;
                 if (notify && previous == ServerState.Online && vm.Settings.NotifyOffline)
-                    _app.Notify("Serveur injoignable", $"{vm.Name} ne répond plus.");
+                    _app.Notify(Loc.T("Notify.OfflineTitle"), Loc.T("Notify.OfflineText", vm.Name));
                 break;
             case SshErrorKind.AuthFailed or SshErrorKind.KeyFile:
                 vm.State = ServerState.AuthFailed;
@@ -263,14 +263,13 @@ public sealed class ServerManager : IDisposable
             case SshErrorKind.HostKeyChanged:
                 vm.State = ServerState.HostKeyChanged;
                 if (previous != ServerState.HostKeyChanged)
-                    _app.Notify("Clé d'hôte modifiée !",
-                        $"La clé de {vm.Name} a changé. Connexion refusée par sécurité : vérifiez le serveur.");
+                    _app.Notify(Loc.T("Notify.HostKeyChangedTitle"), Loc.T("Notify.HostKeyChangedText", vm.Name));
                 break;
             case SshErrorKind.VaultLocked:
                 vm.State = ServerState.Locked;
                 break;
             case SshErrorKind.ElevationFailed:
-                break;   // le serveur répond : seule l'action a échoué
+                break;   // the server responds: only the action failed
             default:
                 vm.State = ServerState.Error;
                 break;
@@ -284,8 +283,8 @@ public sealed class ServerManager : IDisposable
     // ===== Actions =====
 
     /// <summary>
-    /// Cadre commun des actions : une seule à la fois par serveur, coffre ouvert si besoin,
-    /// clé d'hôte inconnue proposée à l'approbation, erreurs affichées dans la carte et le journal.
+    /// Common frame of actions: one at a time per server, vault unlocked when needed, unknown host
+    /// keys offered for approval, errors shown in the card and the log.
     /// </summary>
     private async Task<bool> RunActionAsync(ServerViewModel vm, string busyText, bool interactive,
         Func<ServerConnection, CancellationToken, Task> action)
@@ -335,8 +334,8 @@ public sealed class ServerManager : IDisposable
     }
 
     /// <summary>
-    /// Exécute l'action ; si la clé d'hôte est inconnue ou a changé, la fait approuver
-    /// (actions lancées par l'utilisateur uniquement) puis réessaie une fois.
+    /// Runs the action; if the host key is unknown or has changed, has it approved (actions started
+    /// by the user only), then tries once more.
     /// </summary>
     private async Task WithHostKeyApprovalAsync(ServerConfig config, bool interactive, Func<Task> action)
     {
@@ -353,7 +352,7 @@ public sealed class ServerManager : IDisposable
         }
     }
 
-    /// <summary>Demande l'approbation de la clé et l'enregistre ; true si acceptée.</summary>
+    /// <summary>Asks for the key to be approved and saves it; true when accepted.</summary>
     public bool ApproveHostKey(ServerConfig config, SshOperationException ex)
     {
         if (ex.Fingerprint is null || !_app.ConfirmHostKey(config, ex))
@@ -365,59 +364,59 @@ public sealed class ServerManager : IDisposable
     }
 
     public Task RefreshNowAsync(ServerViewModel vm) =>
-        RunActionAsync(vm, "Actualisation…", interactive: true, (_, _) => RefreshCoreAsync(vm));
+        RunActionAsync(vm, Loc.T("Busy.Refreshing"), interactive: true, (_, _) => RefreshCoreAsync(vm));
 
-    /// <summary>« Check updates » : apt update en root, puis relevé de la liste des paquets.</summary>
+    /// <summary>"Check updates": apt update as root, then reads the package list.</summary>
     public Task<bool> CheckUpdatesAsync(ServerViewModel vm, bool interactive = true) =>
-        RunActionAsync(vm, "Recherche de mises à jour…", interactive, async (connection, ct) =>
+        RunActionAsync(vm, Loc.T("Busy.CheckingUpdates"), interactive, async (connection, ct) =>
         {
-            vm.AppendLogLine($"\n━━ {DateTime.Now:HH:mm:ss} · Recherche de mises à jour (apt-get update) ━━");
+            vm.AppendLogLine($"\n━━ {DateTime.Now:HH:mm:ss} · {Loc.T("Log.CheckUpdates")} ━━");
             var result = await Task.Run(() => connection.RunAsRootAsync(RemoteCommands.AptUpdate, vm.AppendLog, ct), ct);
             if (!result.Success)
-                throw new SshOperationException(SshErrorKind.Other, $"apt-get update a échoué (code {result.ExitCode}). Voir le journal.");
+                throw new SshOperationException(SshErrorKind.Other, Loc.T("Error.AptUpdateFailed", result.ExitCode));
 
             vm.Config.LastUpdateCheckUtc = DateTime.UtcNow;
             _app.Config.Save();
             await RefreshCoreAsync(vm);
             vm.AppendLogLine(vm.UpdateCount is { } n
                 ? $"→ {vm.UpdatesText}{(vm.SecurityCount > 0 ? $" ({vm.UpdatesDetail})" : "")}"
-                : "→ Liste des paquets indisponible.");
+                : "→ " + Loc.T("Log.NoPackageList"));
         });
 
-    /// <summary>« Update » : apt update + upgrade (ou full-upgrade) non interactifs.</summary>
+    /// <summary>"Update": non-interactive apt update + upgrade (or full-upgrade).</summary>
     public Task<bool> UpgradeAsync(ServerViewModel vm) =>
-        RunActionAsync(vm, "Mise à jour en cours…", interactive: true, async (connection, ct) =>
+        RunActionAsync(vm, Loc.T("Busy.Upgrading"), interactive: true, async (connection, ct) =>
         {
             var settings = vm.Settings;
             string verb = settings.Upgrade == UpgradeKind.FullUpgrade ? "full-upgrade" : "upgrade";
-            vm.AppendLogLine($"\n━━ {DateTime.Now:HH:mm:ss} · Mise à jour (apt-get {verb}) ━━");
+            vm.AppendLogLine($"\n━━ {DateTime.Now:HH:mm:ss} · {Loc.T("Log.Upgrade", verb)} ━━");
             var script = RemoteCommands.AptUpgrade(settings.Upgrade, settings.AutoRemove);
             var result = await Task.Run(() => connection.RunAsRootAsync(script, vm.AppendLog, ct), ct);
             if (!result.Success)
-                throw new SshOperationException(SshErrorKind.Other, $"La mise à jour a échoué (code {result.ExitCode}). Voir le journal.");
+                throw new SshOperationException(SshErrorKind.Other, Loc.T("Error.UpgradeFailed", result.ExitCode));
 
             vm.Config.LastUpdateCheckUtc = DateTime.UtcNow;
             _app.Config.Save();
             await RefreshCoreAsync(vm);
-            vm.AppendLogLine("✔ Mise à jour terminée." + (vm.RebootRequired ? " Un redémarrage est requis." : ""));
+            vm.AppendLogLine("✔ " + Loc.T("Log.UpgradeDone") + (vm.RebootRequired ? " " + Loc.T("Log.RebootRequired") : ""));
         });
 
     public Task<bool> RebootAsync(ServerViewModel vm) =>
-        RunActionAsync(vm, "Redémarrage…", interactive: true, async (connection, ct) =>
+        RunActionAsync(vm, Loc.T("Busy.Rebooting"), interactive: true, async (connection, ct) =>
         {
-            vm.AppendLogLine($"\n━━ {DateTime.Now:HH:mm:ss} · Redémarrage ━━");
+            vm.AppendLogLine($"\n━━ {DateTime.Now:HH:mm:ss} · {Loc.T("Log.Reboot")} ━━");
             var result = await Task.Run(() => connection.RunAsRootAsync(RemoteCommands.Reboot, vm.AppendLog, ct), ct);
             if (!result.Success)
-                throw new SshOperationException(SshErrorKind.Other, $"Le redémarrage a échoué (code {result.ExitCode}).");
+                throw new SshOperationException(SshErrorKind.Other, Loc.T("Error.RebootFailed", result.ExitCode));
             ResetConnection(vm.Id);
             vm.State = ServerState.Offline;
-            vm.StateDetail = "Redémarrage en cours…";
+            vm.StateDetail = Loc.T("Busy.RebootInProgress");
             vm.LatencyMs = null;
-            // Premier relevé une minute plus tard, le temps que le serveur revienne
+            // First reading a minute later, giving the server time to come back
             _nextRefresh[vm.Id] = DateTime.UtcNow.AddSeconds(60);
         });
 
-    /// <summary>Action sur plusieurs serveurs, quatre à la fois.</summary>
+    /// <summary>Action on several servers, four at a time.</summary>
     public async Task RunForAllAsync(IEnumerable<ServerViewModel> servers, Func<ServerViewModel, Task> action)
     {
         using var slots = new SemaphoreSlim(MaxParallel);
@@ -432,7 +431,7 @@ public sealed class ServerManager : IDisposable
 
     // ===== Terminal =====
 
-    /// <summary>Session du terminal intégré, avec approbation de la clé d'hôte si besoin.</summary>
+    /// <summary>Built-in terminal session, with host key approval when needed.</summary>
     public async Task<TerminalSession?> OpenTerminalSessionAsync(ServerConfig config, uint columns, uint rows)
     {
         if (_app.Vault.IsLocked && !await _app.UnlockInteractiveAsync())
@@ -447,7 +446,7 @@ public sealed class ServerManager : IDisposable
         return session;
     }
 
-    /// <summary>« Open SSH » : terminal intégré ou externe selon les réglages.</summary>
+    /// <summary>"Open SSH": built-in or external terminal, depending on the settings.</summary>
     public async Task OpenSshAsync(ServerViewModel vm)
     {
         var settings = vm.Settings;
@@ -462,7 +461,7 @@ public sealed class ServerManager : IDisposable
             if (_app.Vault.IsLocked && !await _app.UnlockInteractiveAsync())
                 return;
             var secrets = _app.Vault.Get(vm.Id);
-            // Le premier mot de passe que demandera la session
+            // The first password the session will ask for
             string? toCopy = vm.Config.Auth == AuthMethod.Password
                 ? secrets.Password
                 : settings.RootShell ? secrets.ElevationSecretFor(vm.Config) : null;
@@ -475,13 +474,13 @@ public sealed class ServerManager : IDisposable
         }
         catch (Exception ex)
         {
-            _app.ShowError("Ouverture du terminal", ex.Message);
+            _app.ShowError(Loc.T("Error.OpenTerminalTitle"), ex.Message);
         }
     }
 
-    // ===== Fiche serveur : test et déploiement de clé =====
+    // ===== Server editor: test and key deployment =====
 
-    /// <summary>Test complet d'une configuration non enregistrée : connexion, puis élévation root.</summary>
+    /// <summary>Full test of an unsaved configuration: connection, then root elevation.</summary>
     public async Task<string> TestConfigurationAsync(ServerConfig config, ServerSecrets secrets)
     {
         var lines = new List<string>();
@@ -491,27 +490,27 @@ public sealed class ServerManager : IDisposable
             using var connection = await Task.Run(() => SshConnector.ConnectAsync(config, secrets, false, _shutdown.Token));
             var info = await Task.Run(() => RemoteExec.RunAsync(connection.Client,
                 "echo \"$(id -un) · $(. /etc/os-release 2>/dev/null; echo \"$PRETTY_NAME\")\"", null, _shutdown.Token));
-            lines.Add($"Connexion réussie : {info.Output.Trim()}");
+            lines.Add(Loc.T("Test.Connected", info.Output.Trim()));
 
             if (config.EffectiveElevation != ElevationMethod.None)
             {
                 var root = await Task.Run(() => RemoteExec.RunAsRootAsync(connection.Client, config, secrets, false,
                     "id -u", null, _shutdown.Token));
                 lines.Add(root.Output.Trim().EndsWith('0') && root.Success
-                    ? $"Élévation {(config.EffectiveElevation == ElevationMethod.Sudo ? "sudo" : "su")} : OK (root)"
-                    : $"Élévation : réponse inattendue ({root.Output.Trim()})");
+                    ? Loc.T("Test.ElevationOk", config.EffectiveElevation == ElevationMethod.Sudo ? "sudo" : "su")
+                    : Loc.T("Test.ElevationUnexpected", root.Output.Trim()));
             }
             else if (!config.IsRootUser)
             {
-                lines.Add("Aucune élévation configurée : apt et le redémarrage échoueront sans droits root.");
+                lines.Add(Loc.T("Test.NoElevation"));
             }
         });
         return string.Join("\n", lines);
     }
 
     /// <summary>
-    /// Installe la clé publique sur le serveur (connexion par mot de passe), puis vérifie que
-    /// la connexion par clé fonctionne. La configuration passe alors en authentification par clé.
+    /// Installs the public key on the server (password login), then checks that the key login works.
+    /// The configuration then switches to key authentication.
     /// </summary>
     public async Task<string> DeployKeyAsync(ServerConfig config, ServerSecrets secrets, string keyPath)
     {
@@ -525,7 +524,7 @@ public sealed class ServerManager : IDisposable
             var result = await Task.Run(() => RemoteExec.ExecAsync(connection.Client,
                 "sh -c " + RemoteExec.Quote(SshKeys.InstallScript), publicKey + "\n", null, _shutdown.Token));
             if (!result.Success || !result.Output.Contains("OK"))
-                throw new SshOperationException(SshErrorKind.Other, $"Installation de la clé impossible : {result.Output.Trim()}");
+                throw new SshOperationException(SshErrorKind.Other, Loc.T("Error.KeyInstallFailed", result.Output.Trim()));
         });
 
         var keyConfig = config.Clone();
@@ -536,7 +535,7 @@ public sealed class ServerManager : IDisposable
         }
         config.Auth = AuthMethod.PrivateKey;
         config.KeyPath = keyPath;
-        return $"Clé installée et vérifiée : la connexion se fait désormais avec {keyPath}.";
+        return Loc.T("Test.KeyInstalled", keyPath);
     }
 
     public void Dispose()

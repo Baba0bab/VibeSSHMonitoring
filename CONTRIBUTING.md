@@ -8,7 +8,7 @@ Thanks for your interest! Bug reports, feature ideas and pull requests are welco
 
 ### Reporting a bug
 
-Open an [issue](https://github.com/Baba0bab/VibeSSHMonitoring/issues/new/choose) with the app version (*Paramètres → À propos*), your Windows version, the server's distribution, the steps to reproduce and the error message or the server's *Journal des opérations*. **Remove IP addresses, user names and anything sensitive** before posting. Security issues: do **not** open a public issue, see [SECURITY.md](SECURITY.md).
+Open an [issue](https://github.com/Baba0bab/VibeSSHMonitoring/issues/new/choose) with the app version (*Settings → About*), your Windows version, the server's distribution, the steps to reproduce and the error message or the server's *Operation log*. Issues can be written in English or French. **Remove IP addresses, user names and anything sensitive** before posting. Security issues: do **not** open a public issue, see [SECURITY.md](SECURITY.md).
 
 ### Development setup
 
@@ -20,7 +20,9 @@ Open an [issue](https://github.com/Baba0bab/VibeSSHMonitoring/issues/new/choose)
 ### Pull requests
 
 - One topic per pull request, branched from `main`; describe what changed and how you tested it.
-- Follow the existing style (see [`.editorconfig`](.editorconfig)): file-scoped namespaces, `_camelCase` private fields, comments in French like the rest of the code base. The user interface is in French.
+- Follow the existing style (see [`.editorconfig`](.editorconfig)): file-scoped namespaces, `_camelCase` private fields, comments in English like the rest of the code base.
+- Never hard-code interface text: add a key to [`Localization/en.json`](Localization/en.json) (the reference) **and** to every other language file, then use `Loc.T("Area.Key")` in C# or `{ui:Tr Area.Key}` in XAML. A test checks that all languages have the same keys and placeholders. If you can't translate a text, copy the English one: native speakers can fix it later.
+- The button names *Check updates*, *Update* and *Open SSH* stay in English in every language.
 - Keep `Core/` free of WPF dependencies; add or update tests in `Tests/` for parsing, scripts and security-sensitive code.
 - Any command sent to servers must stay non-interactive and must never put a secret on a command line.
 - `dotnet build` must produce **no warnings**, and `dotnet test Tests` must pass (the CI checks both).
@@ -34,7 +36,7 @@ Merci de votre intérêt ! Signalements de bugs, idées et pull requests sont le
 
 ### Signaler un bug
 
-Ouvrez une [issue](https://github.com/Baba0bab/VibeSSHMonitoring/issues/new/choose) en indiquant la version de l'application (*Paramètres → À propos*), votre version de Windows, la distribution du serveur, les étapes pour reproduire et le message d'erreur ou le *Journal des opérations* du serveur. **Retirez adresses IP, noms d'utilisateur et toute information sensible** avant de publier. Faille de sécurité : **n'ouvrez pas** d'issue publique, voir [SECURITY.md](SECURITY.md).
+Ouvrez une [issue](https://github.com/Baba0bab/VibeSSHMonitoring/issues/new/choose) en indiquant la version de l'application (*Paramètres → À propos*), votre version de Windows, la distribution du serveur, les étapes pour reproduire et le message d'erreur ou le *Journal des opérations* du serveur. Les issues peuvent être rédigées en anglais ou en français. **Retirez adresses IP, noms d'utilisateur et toute information sensible** avant de publier. Faille de sécurité : **n'ouvrez pas** d'issue publique, voir [SECURITY.md](SECURITY.md).
 
 ### Environnement de développement
 
@@ -46,7 +48,9 @@ Ouvrez une [issue](https://github.com/Baba0bab/VibeSSHMonitoring/issues/new/choo
 ### Pull requests
 
 - Un sujet par pull request, à partir de `main` ; décrivez le changement et comment vous l'avez testé.
-- Suivez le style existant (voir [`.editorconfig`](.editorconfig)) : namespaces de fichier, champs privés `_camelCase`, commentaires en français comme le reste du code. L'interface est en français.
+- Suivez le style existant (voir [`.editorconfig`](.editorconfig)) : namespaces de fichier, champs privés `_camelCase`, commentaires en anglais comme le reste du code.
+- N'écrivez jamais de texte d'interface en dur : ajoutez une clé dans [`Localization/en.json`](Localization/en.json) (la référence) **et** dans tous les autres fichiers de langue, puis utilisez `Loc.T("Zone.Cle")` en C# ou `{ui:Tr Zone.Cle}` en XAML. Un test vérifie que toutes les langues ont les mêmes clés et les mêmes paramètres. Si vous ne savez pas traduire un texte, recopiez l'anglais : des locuteurs natifs pourront le corriger.
+- Les noms des boutons *Check updates*, *Update* et *Open SSH* restent en anglais dans toutes les langues.
 - Gardez `Core/` sans dépendance à WPF ; ajoutez ou mettez à jour les tests dans `Tests/` pour l'analyse des sorties, les scripts et le code sensible.
 - Toute commande envoyée aux serveurs doit rester non interactive et ne jamais placer de secret dans une ligne de commande.
 - `dotnet build` ne doit produire **aucun avertissement** et `dotnet test Tests` doit réussir (la CI vérifie les deux).

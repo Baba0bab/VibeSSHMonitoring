@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace VibeSSHMonitoring.Core;
 
-/// <summary>État d'un serveur relevé par la sonde (champs null = non demandés ou indisponibles).</summary>
+/// <summary>Server state read by the probe (null fields = not requested or unavailable).</summary>
 public sealed class ProbeResult
 {
     public string? Hostname { get; set; }
@@ -29,12 +29,12 @@ public sealed class ProbeResult
     public List<PackageUpdate>? Packages { get; set; }
 }
 
-/// <summary>Commandes envoyées aux serveurs Debian / Ubuntu, et lecture de leurs résultats.</summary>
+/// <summary>Commands sent to Debian / Ubuntu servers, and parsing of their output.</summary>
 public static partial class RemoteCommands
 {
     /// <summary>
-    /// Sonde en une seule commande, sans droits root. « apt list --upgradable » lit les listes
-    /// déjà téléchargées : c'est « Check updates » (apt update, en root) qui les rafraîchit.
+    /// Probe in a single command, without root rights. "apt list --upgradable" reads the package
+    /// lists already downloaded: "Check updates" (apt update, as root) is what refreshes them.
     /// </summary>
     public static string BuildProbe(bool system, bool resources, bool updates)
     {
@@ -64,12 +64,12 @@ public static partial class RemoteCommands
 
     private const string AptOptions = "-o DPkg::Lock::Timeout=120";
 
-    /// <summary>« Check updates » : rafraîchit les listes de paquets (root).</summary>
+    /// <summary>"Check updates": refreshes the package lists (root).</summary>
     public static string AptUpdate => $"export DEBIAN_FRONTEND=noninteractive; apt-get {AptOptions} update";
 
     /// <summary>
-    /// « Update » : mise à jour non interactive. Les fichiers de configuration modifiés
-    /// localement sont conservés (confold) ; needrestart redémarre les services concernés.
+    /// "Update": non-interactive upgrade. Locally modified configuration files are kept
+    /// (confold); needrestart restarts the affected services.
     /// </summary>
     public static string AptUpgrade(UpgradeKind kind, bool autoRemove)
     {
@@ -83,9 +83,9 @@ public static partial class RemoteCommands
         return sb.ToString();
     }
 
-    /// <summary>Redémarrage détaché : la commande rend la main avant que la connexion ne tombe.</summary>
+    /// <summary>Detached reboot: the command returns before the connection drops.</summary>
     public static string Reboot =>
-        "nohup sh -c 'sleep 2; systemctl reboot || /sbin/reboot' >/dev/null 2>&1 &\necho Redémarrage programmé.";
+        "nohup sh -c 'sleep 2; systemctl reboot || /sbin/reboot' >/dev/null 2>&1 &\necho Reboot scheduled.";
 
     [GeneratedRegex(@"^(?<name>[^/\s]+)/(?<suites>\S+)\s+(?<new>\S+)\s+(?<arch>\S+)\s+\[upgradable from:\s*(?<old>[^\]]+)\]")]
     private static partial Regex PackageRegex();
@@ -155,7 +155,7 @@ public static partial class RemoteCommands
             }
         }
 
-        // Noyaux antérieurs à 3.14 : pas de MemAvailable, estimation classique
+        // Kernels older than 3.14 have no MemAvailable: classic estimate
         if (result.MemAvailableKb is null && memFree is not null)
             result.MemAvailableKb = memFree + (buffers ?? 0) + (cached ?? 0);
         if (cpu1 is not null && cpu2 is not null)
@@ -165,7 +165,7 @@ public static partial class RemoteCommands
         return result;
     }
 
-    /// <summary>Utilisation CPU entre deux lectures de la ligne « cpu » de /proc/stat.</summary>
+    /// <summary>CPU usage between two readings of the "cpu" line of /proc/stat.</summary>
     private static double? CpuUsage(string first, string second)
     {
         static long[]? Fields(string line)

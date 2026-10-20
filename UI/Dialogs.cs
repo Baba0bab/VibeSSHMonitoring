@@ -7,14 +7,18 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 
+using VibeSSHMonitoring.Core;
+
 namespace VibeSSHMonitoring.UI;
 
-/// <summary>Boîtes de dialogue au thème de l'application (confirmation, erreur, mot de passe).</summary>
+/// <summary>Dialog boxes in the application theme (confirmation, error, password).</summary>
 public static class Dialogs
 {
-    public static bool Confirm(Window? owner, string title, string message, string confirmText = "Confirmer",
-        bool danger = false, string? detail = null, string cancelText = "Annuler")
+    public static bool Confirm(Window? owner, string title, string message, string? confirmText = null,
+        bool danger = false, string? detail = null, string? cancelText = null)
     {
+        confirmText ??= Loc.T("Common.Confirm");
+        cancelText ??= Loc.T("Common.Cancel");
         var dialog = new DialogWindow(owner, title, message, detail, danger ? "" : "",
             danger ? "WarningBrush" : "AccentLightBrush");
         dialog.AddButton(cancelText, isDefault: false, style: null, result: false);
@@ -26,20 +30,22 @@ public static class Dialogs
     {
         var dialog = new DialogWindow(owner, title, message, detail, error ? "" : "",
             error ? "DangerBrush" : "AccentLightBrush");
-        dialog.AddButton("OK", isDefault: true, style: "AccentButton", result: true);
+        dialog.AddButton(Loc.T("Common.Ok"), isDefault: true, style: "AccentButton", result: true);
         dialog.ShowDialog();
     }
 
     /// <summary>
-    /// Saisie d'un mot de passe (deux champs si <paramref name="confirm"/>). <paramref name="validate"/>
-    /// renvoie null si la saisie est acceptée, sinon le message d'erreur ; il peut être lent (Argon2).
+    /// Password input (two fields when <paramref name="confirm"/>). <paramref name="validate"/>
+    /// returns null when the input is accepted, otherwise the error message; it may be slow (Argon2).
     /// </summary>
     public static string? Password(Window? owner, string title, string message, bool confirm,
-        Func<string, Task<string?>>? validate = null, string okText = "Valider", string cancelText = "Annuler")
+        Func<string, Task<string?>>? validate = null, string? okText = null, string? cancelText = null)
     {
+        okText ??= Loc.T("Common.Ok");
+        cancelText ??= Loc.T("Common.Cancel");
         var dialog = new DialogWindow(owner, title, message, null, "", "AccentLightBrush");
-        var first = dialog.AddPassword(confirm ? "Mot de passe" : null);
-        var second = confirm ? dialog.AddPassword("Confirmation") : null;
+        var first = dialog.AddPassword(confirm ? Loc.T("Password.Label") : null);
+        var second = confirm ? dialog.AddPassword(Loc.T("Password.Confirm")) : null;
         string? accepted = null;
 
         dialog.AddButton(cancelText, isDefault: false, style: null, result: false);
@@ -48,19 +54,19 @@ public static class Dialogs
             string value = first.Password;
             if (value.Length == 0)
             {
-                dialog.ShowError("Saisissez un mot de passe.");
+                dialog.ShowError(Loc.T("Password.Empty"));
                 return;
             }
             if (confirm)
             {
                 if (value.Length < 8)
                 {
-                    dialog.ShowError("8 caractères minimum.");
+                    dialog.ShowError(Loc.T("Password.TooShort"));
                     return;
                 }
                 if (value != second!.Password)
                 {
-                    dialog.ShowError("Les deux mots de passe ne correspondent pas.");
+                    dialog.ShowError(Loc.T("Password.Mismatch"));
                     return;
                 }
             }
@@ -85,7 +91,7 @@ public static class Dialogs
         return dialog.ShowDialog() == true ? accepted : null;
     }
 
-    /// <summary>Fenêtre active de l'application, pour centrer les dialogues dessus.</summary>
+    /// <summary>Active application window, to center dialogs on it.</summary>
     public static Window? ActiveWindow() =>
         Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive && w.IsVisible)
         ?? Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsVisible && w is not DialogWindow);
@@ -270,7 +276,7 @@ internal sealed class DialogWindow : Window
         return template;
     }
 
-    /// <summary>Barre de titre sombre, de la couleur du fond (Windows 11).</summary>
+    /// <summary>Dark title bar, in the background color (Windows 11).</summary>
     internal static void ApplyDarkFrame(Window window)
     {
         var hwnd = new WindowInteropHelper(window).Handle;

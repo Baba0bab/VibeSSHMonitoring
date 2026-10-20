@@ -1,10 +1,10 @@
 ﻿# SPDX-License-Identifier: GPL-3.0-or-later
-# Construit l'installateur et les paquets de mise à jour (Velopack) pour une version donnée.
-# Utilisé tel quel par le workflow de release ; utilisable en local :
+# Builds the installer and the update packages (Velopack) for a given version.
+# Used as is by the release workflow; also usable locally:
 #   ./scripts/pack.ps1 -Version 1.2.0
 #   ./scripts/pack.ps1 -Version 1.3.0-beta.1
-# Sortie (dossier Releases) : VibeSSHMonitoring-win-Setup.exe, VibeSSHMonitoring-win-Portable.zip,
-# paquets complet et delta (.nupkg) et index releases.win.json lus par les mises à jour.
+# Output (Releases folder): VibeSSHMonitoring-win-Setup.exe, VibeSSHMonitoring-win-Portable.zip,
+# full and delta packages (.nupkg) and the releases.win.json index read by the updates.
 
 param(
     [Parameter(Mandatory)] [string] $Version,
@@ -17,31 +17,31 @@ $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
 try {
     if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
-        throw "Version invalide '$Version' : attendu 1.2.3 ou 1.2.3-beta.1"
+        throw "Invalid version '$Version': expected 1.2.3 or 1.2.3-beta.1"
     }
     $prefix, $suffix = $Version.Split('-', 2)
     $publishDir = Join-Path $root "artifacts/publish-$Runtime"
     $notesFile = Join-Path $root "artifacts/release-notes.md"
 
-    # 1. Application autonome (runtime .NET inclus : rien à installer côté utilisateur)
+    # 1. Self-contained application (.NET runtime included: nothing to install for the user)
     if (Test-Path $publishDir) { Remove-Item -Recurse -Force $publishDir }
     dotnet publish VibeSSHMonitoring.csproj -c Release -r $Runtime --self-contained true `
         "-p:VersionPrefix=$prefix" "-p:VersionSuffix=$suffix" -o $publishDir
-    if ($LASTEXITCODE) { throw "dotnet publish a échoué" }
+    if ($LASTEXITCODE) { throw "dotnet publish failed" }
 
-    # 2. Notes de version : la section de CHANGELOG.md, affichée dans l'application et sur GitHub
+    # 2. Release notes: the CHANGELOG.md section, shown in the application and on GitHub
     $changelog = Get-Content (Join-Path $root "CHANGELOG.md") -Raw
     $pattern = '(?ms)^## \[' + [regex]::Escape($Version) + '\][^\n]*\n(.*?)(?=^## \[|\z)'
     $section = [regex]::Match($changelog, $pattern).Groups[1].Value
     $section = ($section -split "`n" | Where-Object { $_ -notmatch '^\[[^\]]+\]:' }) -join "`n"
     if (-not $section.Trim()) {
-        Write-Warning "Aucune section « ## [$Version] » dans CHANGELOG.md : notes de version vides."
+        Write-Warning "No '## [$Version]' section in CHANGELOG.md: empty release notes."
         $section = "Version $Version"
     }
     New-Item -ItemType Directory -Force (Split-Path $notesFile) | Out-Null
     Set-Content $notesFile $section.Trim() -Encoding utf8
 
-    # 3. Paquets Velopack (delta automatique si la version précédente est déjà dans $OutputDir)
+    # 3. Velopack packages (automatic delta if the previous version is already in $OutputDir)
     dotnet tool restore | Out-Null
     dotnet vpk pack `
         --packId VibeSSHMonitoring `
@@ -55,9 +55,9 @@ try {
         --shortcuts "Desktop,StartMenuRoot" `
         --runtime $Runtime `
         --outputDir $OutputDir
-    if ($LASTEXITCODE) { throw "vpk pack a échoué" }
+    if ($LASTEXITCODE) { throw "vpk pack failed" }
 
-    Get-ChildItem $OutputDir | Sort-Object Name | ForEach-Object { "{0,-50} {1,10:N0} Ko" -f $_.Name, ($_.Length / 1KB) }
+    Get-ChildItem $OutputDir | Sort-Object Name | ForEach-Object { "{0,-50} {1,10:N0} KB" -f $_.Name, ($_.Length / 1KB) }
 }
 finally {
     Pop-Location

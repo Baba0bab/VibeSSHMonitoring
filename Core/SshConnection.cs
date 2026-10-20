@@ -16,7 +16,7 @@ public enum SshErrorKind
     VaultLocked, ElevationFailed, KeyFile, Other
 }
 
-/// <summary>Erreur SSH traduite en message lisible, avec sa nature pour l'affichage du statut.</summary>
+/// <summary>SSH error turned into a readable message, with its kind for the status display.</summary>
 public sealed class SshOperationException : Exception
 {
     public SshErrorKind Kind { get; }
@@ -32,7 +32,7 @@ public sealed record CommandResult(int ExitCode, string Output)
     public bool Success => ExitCode == 0;
 }
 
-/// <summary>Client SSH connecté et les ressources qui doivent vivre aussi longtemps que lui.</summary>
+/// <summary>Connected SSH client and the resources that must live as long as it does.</summary>
 public sealed class ConnectedClient : IDisposable
 {
     private readonly List<IDisposable> _resources;
@@ -58,9 +58,9 @@ public sealed class ConnectedClient : IDisposable
 public static class SshConnector
 {
     /// <summary>
-    /// Ouvre une connexion. La clé d'hôte doit correspondre à l'empreinte approuvée :
-    /// sinon la connexion est refusée et l'exception porte l'empreinte reçue, pour que
-    /// l'interface puisse la faire approuver puis réessayer.
+    /// Opens a connection. The host key must match the approved fingerprint: otherwise the
+    /// connection is refused and the exception carries the received fingerprint, so that the
+    /// interface can have it approved and try again.
     /// </summary>
     public static async Task<ConnectedClient> ConnectAsync(ServerConfig server, ServerSecrets secrets,
         bool vaultLocked, CancellationToken ct)
@@ -72,11 +72,11 @@ public static class SshConnector
         {
             if (string.IsNullOrEmpty(secrets.Password))
                 throw vaultLocked
-                    ? new SshOperationException(SshErrorKind.VaultLocked, "Coffre verrouillé : déverrouillez-le pour vous connecter.")
-                    : new SshOperationException(SshErrorKind.AuthFailed, "Aucun mot de passe enregistré pour ce serveur.");
+                    ? new SshOperationException(SshErrorKind.VaultLocked, Loc.T("Ssh.VaultLockedConnect"))
+                    : new SshOperationException(SshErrorKind.AuthFailed, Loc.T("Ssh.NoPassword"));
             string password = secrets.Password;
             var passwordAuth = new PasswordAuthenticationMethod(server.Username, password);
-            // Beaucoup de serveurs n'acceptent le mot de passe qu'en « keyboard-interactive »
+            // Many servers only accept the password through "keyboard-interactive"
             var keyboardAuth = new KeyboardInteractiveAuthenticationMethod(server.Username);
             keyboardAuth.AuthenticationPrompt += (_, e) =>
             {
@@ -92,7 +92,7 @@ public static class SshConnector
         {
             string path = ExpandPath(server.KeyPath);
             if (!File.Exists(path))
-                throw new SshOperationException(SshErrorKind.KeyFile, $"Clé privée introuvable : {path}");
+                throw new SshOperationException(SshErrorKind.KeyFile, Loc.T("Ssh.KeyNotFound", path));
             PrivateKeyFile key;
             try
             {
@@ -103,12 +103,11 @@ public static class SshConnector
             catch (SshPassPhraseNullOrEmptyException ex)
             {
                 throw new SshOperationException(vaultLocked ? SshErrorKind.VaultLocked : SshErrorKind.KeyFile,
-                    vaultLocked ? "Coffre verrouillé : la phrase de passe de la clé est inaccessible."
-                                : "Cette clé est protégée par une phrase de passe : renseignez-la dans la fiche du serveur.", ex);
+                    Loc.T(vaultLocked ? "Ssh.VaultLockedPassphrase" : "Ssh.KeyNeedsPassphrase"), ex);
             }
             catch (Exception ex) when (ex is SshException or InvalidOperationException or NotSupportedException or IOException)
             {
-                throw new SshOperationException(SshErrorKind.KeyFile, $"Clé privée illisible ou phrase de passe incorrecte : {ex.Message}", ex);
+                throw new SshOperationException(SshErrorKind.KeyFile, Loc.T("Ssh.KeyUnreadable", ex.Message), ex);
             }
             resources.Add(key);
             var keyAuth = new PrivateKeyAuthenticationMethod(server.Username, key);
@@ -150,8 +149,7 @@ public static class SshConnector
             {
                 bool changed = server.HostKeyFingerprint is not null;
                 throw new SshOperationException(changed ? SshErrorKind.HostKeyChanged : SshErrorKind.HostKeyUnknown,
-                    changed ? "ALERTE : la clé d'hôte du serveur a changé. Connexion refusée."
-                            : "Clé d'hôte inconnue : à approuver avant la première connexion.", ex)
+                    Loc.T(changed ? "Ssh.HostKeyChanged" : "Ssh.HostKeyUnknown"), ex)
                 {
                     HostKeyType = receivedType,
                     Fingerprint = receivedFingerprint
@@ -166,19 +164,18 @@ public static class SshConnector
     public static Exception Translate(Exception ex) => ex switch
     {
         SshOperationException or OperationCanceledException when ex is not TaskCanceledException => ex,
-        SshAuthenticationException => new SshOperationException(SshErrorKind.AuthFailed,
-            "Authentification refusée : vérifiez l'utilisateur, le mot de passe ou la clé.", ex),
+        SshAuthenticationException => new SshOperationException(SshErrorKind.AuthFailed, Loc.T("Ssh.AuthFailed"), ex),
         SocketException { SocketErrorCode: SocketError.HostNotFound or SocketError.NoData } => new SshOperationException(
-            SshErrorKind.Unreachable, "Hôte introuvable (nom ou adresse incorrect).", ex),
+            SshErrorKind.Unreachable, Loc.T("Ssh.HostNotFound"), ex),
         SocketException { SocketErrorCode: SocketError.ConnectionRefused } => new SshOperationException(
-            SshErrorKind.Unreachable, "Connexion refusée : le port SSH est fermé ?", ex),
+            SshErrorKind.Unreachable, Loc.T("Ssh.ConnectionRefused"), ex),
         SocketException { SocketErrorCode: SocketError.TimedOut } => new SshOperationException(
-            SshErrorKind.Timeout, "Délai dépassé : le serveur ne répond pas.", ex),
-        SocketException se => new SshOperationException(SshErrorKind.Unreachable, $"Réseau : {se.Message}", ex),
+            SshErrorKind.Timeout, Loc.T("Ssh.Timeout"), ex),
+        SocketException se => new SshOperationException(SshErrorKind.Unreachable, Loc.T("Ssh.Network", se.Message), ex),
         SshOperationTimeoutException or TimeoutException or TaskCanceledException => new SshOperationException(
-            SshErrorKind.Timeout, "Délai dépassé : le serveur ne répond pas.", ex),
+            SshErrorKind.Timeout, Loc.T("Ssh.Timeout"), ex),
         SshConnectionException => new SshOperationException(SshErrorKind.Unreachable,
-            $"Connexion SSH interrompue : {ex.Message}", ex),
+            Loc.T("Ssh.ConnectionLost", ex.Message), ex),
         _ => new SshOperationException(SshErrorKind.Other, ex.Message, ex)
     };
 
@@ -193,7 +190,7 @@ public static class SshConnector
     }
 }
 
-/// <summary>Exécution de commandes distantes, en utilisateur simple ou en root (sudo / su).</summary>
+/// <summary>Runs remote commands, as the connected user or as root (sudo / su).</summary>
 public static partial class RemoteExec
 {
     private const string Marker = "__SVM_RC_";
@@ -201,7 +198,8 @@ public static partial class RemoteExec
     [GeneratedRegex(@"__SVM_RC_(\d+)__")]
     private static partial Regex MarkerRegex();
 
-    [GeneratedRegex(@"(?i)(password|mot de passe|passwort|contrase[ñn]a|senha)[^\n]*[:：]\s*$")]
+    /// <summary>Password prompt of sudo / su, in the server's language.</summary>
+    [GeneratedRegex(@"(?i)(password|mot de passe|passwort|kennwort|contrase[ñn]a|senha)[^\n]*[:：]\s*$")]
     public static partial Regex PasswordPromptRegex();
 
     [GeneratedRegex(@"\x1B\[[0-?]*[ -/]*[@-~]|\x1B\][^\x07\x1B]*(\x07|\x1B\\)|\x1B[()][A-Za-z0-9]|\x1B[=>78]")]
@@ -209,15 +207,15 @@ public static partial class RemoteExec
 
     public static string StripAnsi(string text) => AnsiRegex().Replace(text, "");
 
-    /// <summary>Protège une chaîne pour sh : 'abc' → 'a'"'"'bc'.</summary>
+    /// <summary>Quotes a string for sh: 'abc' → 'a'"'"'bc'.</summary>
     public static string Quote(string value) => "'" + value.Replace("'", "'\"'\"'") + "'";
 
-    /// <summary>Exécute <paramref name="script"/> (sh) en tant que l'utilisateur connecté.</summary>
+    /// <summary>Runs <paramref name="script"/> (sh) as the connected user.</summary>
     public static Task<CommandResult> RunAsync(SshClient client, string script, Action<string>? output,
         CancellationToken ct) =>
         ExecAsync(client, "sh -c " + Quote(script), null, output, ct);
 
-    /// <summary>Exécute <paramref name="script"/> en root selon la méthode d'élévation du serveur.</summary>
+    /// <summary>Runs <paramref name="script"/> as root, using the server's elevation method.</summary>
     public static async Task<CommandResult> RunAsRootAsync(SshClient client, ServerConfig server, ServerSecrets secrets,
         bool vaultLocked, string script, Action<string>? output, CancellationToken ct)
     {
@@ -226,7 +224,7 @@ public static partial class RemoteExec
         {
             case ElevationMethod.Sudo:
             {
-                // stdin de la commande redirigé : le mot de passe envoyé à sudo ne peut pas lui parvenir
+                // The command's stdin is redirected: the password sent to sudo can never reach it
                 string inner = "sh -c " + Quote("exec </dev/null; " + script);
                 string command = password is null
                     ? "LC_ALL=C sudo -n -- " + inner
@@ -239,16 +237,14 @@ public static partial class RemoteExec
             case ElevationMethod.Su:
                 if (password is null)
                     throw new SshOperationException(vaultLocked ? SshErrorKind.VaultLocked : SshErrorKind.ElevationFailed,
-                        vaultLocked ? "Coffre verrouillé : mot de passe root inaccessible."
-                                    : "Mot de passe root non renseigné (nécessaire pour su).");
+                        Loc.T(vaultLocked ? "Ssh.VaultLockedRoot" : "Ssh.NoRootPassword"));
                 return await ExecSuAsync(client, script, password, output, ct).ConfigureAwait(false);
             default:
             {
                 var result = await RunAsync(client, script, output, ct).ConfigureAwait(false);
                 if (!result.Success && !server.IsRootUser &&
                     (result.Output.Contains("are you root?") || result.Output.Contains("Permission denied")))
-                    throw new SshOperationException(SshErrorKind.ElevationFailed,
-                        "Droits insuffisants : configurez l'élévation root (sudo ou su) dans la fiche du serveur.");
+                    throw new SshOperationException(SshErrorKind.ElevationFailed, Loc.T("Ssh.NotRoot"));
                 return result;
             }
         }
@@ -259,24 +255,23 @@ public static partial class RemoteExec
         if (result.Success)
             return;
         string head = result.Output.Length > 600 ? result.Output[..600] : result.Output;
-        string? message = null;
+        string? key = null;
         if (head.Contains("a password is required") || head.Contains("a terminal is required"))
-            message = vaultLocked
-                ? "Coffre verrouillé : mot de passe sudo inaccessible."
-                : "sudo demande un mot de passe : renseignez-le dans la fiche du serveur.";
+            key = vaultLocked ? "Ssh.VaultLockedSudo" : "Ssh.SudoNeedsPassword";
         else if (head.Contains("incorrect password") || head.Contains("Sorry, try again"))
-            message = "Mot de passe sudo incorrect.";
+            key = "Ssh.SudoWrongPassword";
         else if (head.Contains("not in the sudoers") || head.Contains("is not allowed to run sudo"))
-            message = "Cet utilisateur n'a pas le droit d'utiliser sudo.";
+            key = "Ssh.SudoNotAllowed";
         else if (result.ExitCode == 127 && head.Contains("sudo"))
-            message = "sudo n'est pas installé sur ce serveur : utilisez su.";
-        if (message is not null)
-            throw new SshOperationException(noPassword && vaultLocked ? SshErrorKind.VaultLocked : SshErrorKind.ElevationFailed, message);
+            key = "Ssh.SudoMissing";
+        if (key is not null)
+            throw new SshOperationException(noPassword && vaultLocked ? SshErrorKind.VaultLocked : SshErrorKind.ElevationFailed,
+                Loc.T(key));
     }
 
     /// <summary>
-    /// Commande en canal « exec » : sortie standard et erreurs fusionnées, transmises au fil de
-    /// l'eau à <paramref name="output"/>. <paramref name="stdin"/> est envoyé puis l'entrée fermée.
+    /// Command on an "exec" channel: standard output and errors are merged and streamed to
+    /// <paramref name="output"/>. <paramref name="stdin"/> is sent, then the input is closed.
     /// </summary>
     public static async Task<CommandResult> ExecAsync(SshClient client, string command, string? stdin,
         Action<string>? output, CancellationToken ct)
@@ -292,7 +287,7 @@ public static partial class RemoteExec
         }
         else
         {
-            // Fin de l'entrée standard (EOF) ; une commande très rapide peut déjà être terminée
+            // End of standard input (EOF); a very fast command may already be finished
             try { cmd.CreateInputStream().Dispose(); }
             catch (Exception ex) when (ex is SshException or ObjectDisposedException or InvalidOperationException) { }
         }
@@ -310,7 +305,7 @@ public static partial class RemoteExec
             pumpCts.Cancel();
             throw SshConnector.Translate(ex);
         }
-        // Les flux se terminent avec la commande ; garde-fou si le serveur ne ferme pas proprement
+        // The streams end with the command; safety net if the server does not close them cleanly
         if (await Task.WhenAny(pumps, Task.Delay(3000, CancellationToken.None)).ConfigureAwait(false) != pumps)
             pumpCts.Cancel();
         try { await pumps.ConfigureAwait(false); } catch (OperationCanceledException) { }
@@ -347,9 +342,9 @@ public static partial class RemoteExec
     }
 
     /// <summary>
-    /// su exige un terminal pour lire le mot de passe : on ouvre un shell avec PTY, on lance
-    /// su (en anglais, pour reconnaître ses messages), on répond à l'invite puis on lit la
-    /// sortie jusqu'au marqueur qui porte le code de retour.
+    /// su needs a terminal to read the password: open a shell with a PTY, start su (in English,
+    /// to recognise its messages), answer the prompt, then read the output up to the marker that
+    /// carries the exit code.
     /// </summary>
     private static async Task<CommandResult> ExecSuAsync(SshClient client, string script, string password,
         Action<string>? output, CancellationToken ct)
@@ -363,13 +358,13 @@ public static partial class RemoteExec
         shell.Write(line);
         shell.Flush();
 
-        var preamble = new StringBuilder();   // avant l'invite : notre ligne, éventuel MOTD
-        var body = new StringBuilder();       // sortie utile, après le mot de passe
+        var preamble = new StringBuilder();   // before the prompt: our command line, a possible MOTD
+        var body = new StringBuilder();       // useful output, after the password
         int emitted = 0;
         bool passwordSent = false;
         bool done = false;
         var promptDeadline = DateTime.UtcNow.AddSeconds(25);
-        int holdBack = Marker.Length + 8;     // un marqueur coupé en deux paquets n'est pas affiché
+        int holdBack = Marker.Length + 8;     // a marker split across two packets is never displayed
 
         await Task.Run(() =>
         {
@@ -379,14 +374,14 @@ public static partial class RemoteExec
             while (!done)
             {
                 if (!passwordSent && DateTime.UtcNow > promptDeadline)
-                    throw new SshOperationException(SshErrorKind.ElevationFailed, "su n'a pas demandé de mot de passe (délai dépassé).");
+                    throw new SshOperationException(SshErrorKind.ElevationFailed, Loc.T("Ssh.SuNoPromptTimeout"));
 
                 int read;
                 try
                 {
                     if (!passwordSent && !shell.DataAvailable)
                     {
-                        Thread.Sleep(50);   // attente bornée de l'invite, sans bloquer sur Read
+                        Thread.Sleep(50);   // bounded wait for the prompt, without blocking on Read
                         continue;
                     }
                     read = shell.Read(buffer, 0, buffer.Length);
@@ -397,7 +392,7 @@ public static partial class RemoteExec
                     break;
                 }
                 if (read == 0)
-                    break;   // canal fermé : su (lancé avec exec) est terminé
+                    break;   // channel closed: su (started with exec) has finished
 
                 int count = decoder.GetChars(buffer, 0, read, chars, 0);
                 string chunk = StripAnsi(new string(chars, 0, count)).Replace("\r", "");
@@ -408,7 +403,7 @@ public static partial class RemoteExec
                     string pre = preamble.ToString();
                     if (MarkerRegex().IsMatch(pre))
                     {
-                        body.Append(pre);   // pas d'invite (PAM permissif) : tout est utile
+                        body.Append(pre);   // no prompt (permissive PAM): everything is useful
                         passwordSent = true;
                         done = true;
                     }
@@ -446,21 +441,21 @@ public static partial class RemoteExec
         if (!match.Success)
         {
             if (text.Contains("Authentication failure") || text.Contains("incorrect password") || text.Contains("su: "))
-                throw new SshOperationException(SshErrorKind.ElevationFailed, "su : mot de passe root incorrect.");
+                throw new SshOperationException(SshErrorKind.ElevationFailed, Loc.T("Ssh.SuWrongPassword"));
             if (!passwordSent)
-                throw new SshOperationException(SshErrorKind.ElevationFailed, "su n'a pas demandé de mot de passe : " + preamble.ToString().Trim());
-            throw new SshOperationException(SshErrorKind.Other, "Commande interrompue avant la fin.");
+                throw new SshOperationException(SshErrorKind.ElevationFailed, Loc.T("Ssh.SuNoPrompt", preamble.ToString().Trim()));
+            throw new SshOperationException(SshErrorKind.Other, Loc.T("Ssh.Interrupted"));
         }
         string result = text[..match.Index].TrimStart('\n');
         if (result.EndsWith('\n'))
-            result = result[..^1];   // le « echo » vide ajouté avant le marqueur
+            result = result[..^1];   // the empty "echo" added before the marker
         return new CommandResult(int.Parse(match.Groups[1].Value), result);
     }
 }
 
 /// <summary>
-/// Connexion persistante à un serveur, réutilisée par la supervision et les actions
-/// (plusieurs canaux en parallèle sur la même session SSH). Recréée à la demande si elle tombe.
+/// Persistent connection to a server, shared by monitoring and actions (several channels in
+/// parallel on the same SSH session). Recreated on demand if it drops.
 /// </summary>
 public sealed class ServerConnection : IDisposable
 {
@@ -496,7 +491,7 @@ public sealed class ServerConnection : IDisposable
         }
     }
 
-    /// <summary>Ferme la connexion (identifiants ou clé d'hôte modifiés, erreur réseau).</summary>
+    /// <summary>Closes the connection (credentials or host key changed, network error).</summary>
     public void Reset()
     {
         _gate.Wait();
@@ -514,14 +509,14 @@ public sealed class ServerConnection : IDisposable
     public Task<CommandResult> RunAsync(string script, Action<string>? output, CancellationToken ct) =>
         WithRetry(client => RemoteExec.RunAsync(client, script, output, ct), ct);
 
-    /// <summary>Script lancé en utilisateur simple, avec des données sur son entrée standard.</summary>
+    /// <summary>Script run as the connected user, with data on its standard input.</summary>
     public Task<CommandResult> RunWithInputAsync(string script, string stdin, CancellationToken ct) =>
         WithRetry(client => RemoteExec.ExecAsync(client, "sh -c " + RemoteExec.Quote(script), stdin, null, ct), ct);
 
     public Task<CommandResult> RunAsRootAsync(string script, Action<string>? output, CancellationToken ct) =>
         WithRetry(client => RemoteExec.RunAsRootAsync(client, Server, _secrets(), _vaultLocked(), script, output, ct), ct);
 
-    /// <summary>Une connexion gardée ouverte peut être morte sans le savoir : un seul nouvel essai.</summary>
+    /// <summary>A connection kept open may be dead without knowing it: one single retry.</summary>
     private async Task<CommandResult> WithRetry(Func<SshClient, Task<CommandResult>> action, CancellationToken ct)
     {
         var client = await GetClientAsync(ct).ConfigureAwait(false);

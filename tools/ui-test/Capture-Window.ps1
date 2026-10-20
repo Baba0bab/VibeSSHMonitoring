@@ -1,7 +1,7 @@
 ﻿# SPDX-License-Identifier: GPL-3.0-or-later
-# Capture une fenêtre de l'application en PNG (PrintWindow), même masquée par d'autres fenêtres.
-#   ./tools/ui-test/Capture-Window.ps1 -Out shot.png                     # fenêtre principale
-#   ./tools/ui-test/Capture-Window.ps1 -Out dlg.png -Title "Ajouter"     # fenêtre dont le titre contient « Ajouter »
+# Captures an application window as PNG (PrintWindow), even when hidden behind other windows.
+#   ./tools/ui-test/Capture-Window.ps1 -Out shot.png                     # main window
+#   ./tools/ui-test/Capture-Window.ps1 -Out dlg.png -Title "Add"         # window whose title contains "Add"
 param(
     [Parameter(Mandatory)] [string] $Out,
     [string] $Title = "",
@@ -26,7 +26,7 @@ public static class VsmWin {
 }
 "@
 
-# Coordonnées physiques : sinon la capture est tronquée sur un écran à 150 % / 175 %
+# Physical coordinates: otherwise the capture is cropped on a 150% / 175% screen
 [void][VsmWin]::SetProcessDpiAwarenessContext([IntPtr](-4))
 $proc = Get-Process $ProcessName -ErrorAction Stop | Select-Object -First 1
 $found = New-Object System.Collections.ArrayList
@@ -45,7 +45,7 @@ $callback = [VsmWin+EnumProc] {
 
 $target = $found | Where-Object { $_.Title -ne "" -and ($Title -eq "" -or $_.Title -like "*$Title*") } | Select-Object -First 1
 if (-not $target) {
-    Write-Error ("Fenêtre introuvable. Fenêtres visibles : " + (($found | ForEach-Object { $_.Title }) -join " | "))
+    Write-Error ("Window not found. Visible windows: " + (($found | ForEach-Object { $_.Title }) -join " | "))
     exit 1
 }
 
@@ -54,7 +54,7 @@ $rect = New-Object VsmWin+RECT
 $bitmap = New-Object System.Drawing.Bitmap ($rect.R - $rect.L), ($rect.B - $rect.T)
 $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
 $hdc = $graphics.GetHdc()
-[void][VsmWin]::PrintWindow($target.Handle, $hdc, 2)   # PW_RENDERFULLCONTENT : contenu WPF / WebView2 compris
+[void][VsmWin]::PrintWindow($target.Handle, $hdc, 2)   # PW_RENDERFULLCONTENT: includes WPF / WebView2 content
 $graphics.ReleaseHdc($hdc)
 $bitmap.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png)
 $graphics.Dispose(); $bitmap.Dispose()

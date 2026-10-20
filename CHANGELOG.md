@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-21
+
+### Added
+- The interface is now available in English, French, German and Spanish. It follows the Windows display language by default; choose another one in *Settings → General → Language* (applied after a restart, offered by the app).
+
+### Changed
+- English is now the default language of the app when the Windows display language is not supported (it was French only before).
+
 ## [1.0.0] - 2026-10-20
 
 ### Added
@@ -20,5 +28,6 @@ All notable changes to this project are documented here. The format follows [Kee
 - Windows installer (per-user, no admin rights, Start menu and desktop shortcuts, clean uninstall) and portable version.
 - Automatic application updates from GitHub Releases (delta downloads, install on exit or on restart, optional pre-releases).
 
-[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Baba0bab/VibeSSHMonitoring/releases/tag/v1.0.0

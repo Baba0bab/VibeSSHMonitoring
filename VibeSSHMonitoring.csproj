@@ -10,35 +10,35 @@
     <RootNamespace>VibeSSHMonitoring</RootNamespace>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <!-- Point d'entrée maison (Program.cs) : Velopack doit s'exécuter avant WPF -->
+    <!-- Custom entry point (Program.cs): Velopack must run before WPF -->
     <StartupObject>VibeSSHMonitoring.Program</StartupObject>
-    <!-- Version : remplacée par celle du tag (v1.2.3) dans le workflow de release -->
+    <!-- Version: replaced by the tag's (v1.2.3) in the release workflow -->
     <VersionPrefix>1.0.0</VersionPrefix>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>Vibe SSH Monitoring</Product>
     <AssemblyTitle>Vibe SSH Monitoring</AssemblyTitle>
-    <Description>Supervision et mise à jour de serveurs Debian / Ubuntu en SSH</Description>
+    <Description>Monitor and update Debian / Ubuntu servers over SSH</Description>
     <Authors>Baba0bab</Authors>
     <Copyright>Copyright © 2026 Baba0bab — GPL-3.0-or-later</Copyright>
     <RepositoryUrl>https://github.com/Baba0bab/VibeSSHMonitoring</RepositoryUrl>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <!-- Code précompilé à la publication : démarrage plus rapide (lancement avec Windows) -->
+    <!-- Precompiled code when publishing: faster startup (start with Windows) -->
     <PublishReadyToRun>true</PublishReadyToRun>
-    <!-- Exe unique : les DLL natives (WebView2Loader) y sont incluses et extraites au besoin -->
+    <!-- Single exe: native DLLs (WebView2Loader) are bundled and extracted when needed -->
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
-    <!-- Publication : ni documentation XML des paquets, ni .pdb à part (symboles intégrés à l'exe) -->
+    <SatelliteResourceLanguages>en;fr;de;es</SatelliteResourceLanguages>
+    <!-- Publishing: no package XML documentation, no separate .pdb (symbols embedded in the exe) -->
     <PublishDocumentationFiles>false</PublishDocumentationFiles>
     <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
-  <!-- Version autonome (runtime .NET inclus) : exe compressé, ~2,5 fois plus petit -->
+  <!-- Self-contained build (.NET runtime included): compressed exe, ~2.5 times smaller -->
   <PropertyGroup Condition="'$(SelfContained)' == 'true'">
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
-  <!-- Builds reproductibles sur GitHub Actions (chemins source normalisés) -->
+  <!-- Reproducible builds on GitHub Actions (normalized source paths) -->
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
@@ -50,20 +50,25 @@
     <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 
-  <!-- Projet de tests et fichiers du dépôt : hors de l'application -->
+  <!-- Test project and repository files: not part of the application -->
   <ItemGroup>
     <Compile Remove="Tests\**;artifacts\**" />
     <None Remove="Tests\**;artifacts\**" />
     <Page Remove="Tests\**;artifacts\**" />
   </ItemGroup>
 
-  <!-- Licences livrées avec l'application -->
+  <!-- Interface translations, read by Core/Loc.cs -->
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\*.json" LogicalName="VibeSSHMonitoring.Localization.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- Licenses shipped with the application -->
   <ItemGroup>
     <None Include="LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <None Include="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- Terminal intégré : page xterm.js chargée hors ligne par WebView2 -->
+  <!-- Built-in terminal: xterm.js page loaded offline by WebView2 -->
   <ItemGroup>
     <None Include="Assets\terminal\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

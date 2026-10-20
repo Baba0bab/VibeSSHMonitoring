@@ -10,12 +10,12 @@ using Konscious.Security.Cryptography;
 namespace VibeSSHMonitoring.Core;
 
 /// <summary>
-/// Coffre des mots de passe (%APPDATA%\VibeSSHMonitoring\secrets.json), séparé de la config.
-/// Trois modes au choix de l'utilisateur :
+/// Password vault (%APPDATA%\VibeSSHMonitoring\secrets.json), separate from the configuration.
+/// Three modes, chosen by the user:
 /// <list type="bullet">
-/// <item>DPAPI : chiffré par Windows pour la session courante, rien à saisir ;</item>
-/// <item>mot de passe maître : clé dérivée par Argon2id, contenu chiffré en AES-256-GCM ;</item>
-/// <item>en clair.</item>
+/// <item>DPAPI: encrypted by Windows for the current session, nothing to type;</item>
+/// <item>master password: key derived with Argon2id, content encrypted with AES-256-GCM;</item>
+/// <item>plain text.</item>
 /// </list>
 /// </summary>
 public sealed class SecretVault
@@ -24,18 +24,18 @@ public sealed class SecretVault
     private const int Argon2MemoryKb = 64 * 1024;
     private const int Argon2Iterations = 3;
     private const int Argon2Parallelism = 4;
-    // Ancien nom de l'application, conservé tel quel : le changer rendrait illisibles les coffres DPAPI existants
+    // Former application name, kept as is: changing it would make existing DPAPI vaults unreadable
     private static readonly byte[] DpapiEntropy = "SshVibeMonitoring.v1"u8.ToArray();
 
     private Dictionary<Guid, ServerSecrets> _secrets = new();
-    private byte[]? _key;      // clé dérivée du mot de passe maître, gardée tant que le coffre est ouvert
+    private byte[]? _key;      // key derived from the master password, kept while the vault is open
     private byte[]? _salt;
     private VaultFile? _lockedFile;
 
     public StorageMode Mode { get; private set; }
     public bool IsLocked { get; private set; }
 
-    /// <summary>Mode mot de passe maître sans fichier : il faut d'abord choisir le mot de passe.</summary>
+    /// <summary>Master password mode without a file: the password must be chosen first.</summary>
     public bool NeedsMasterPasswordSetup => Mode == StorageMode.MasterPassword && _lockedFile is null && _key is null;
 
     public event Action? LockStateChanged;
@@ -46,8 +46,8 @@ public sealed class SecretVault
     {
         public int Version { get; set; } = 1;
         public StorageMode Mode { get; set; }
-        public Dictionary<Guid, ServerSecrets>? Secrets { get; set; }   // en clair
-        public string? Data { get; set; }                               // DPAPI ou AES-GCM
+        public Dictionary<Guid, ServerSecrets>? Secrets { get; set; }   // plain text
+        public string? Data { get; set; }                               // DPAPI or AES-GCM
         public string? Salt { get; set; }
         public string? Nonce { get; set; }
         public string? Tag { get; set; }
@@ -59,8 +59,8 @@ public sealed class SecretVault
     private SecretVault() { }
 
     /// <summary>
-    /// Ouvre le coffre. Le mode du fichier fait foi ; sans fichier, on prend celui de la config.
-    /// En mode mot de passe maître, le coffre reste verrouillé jusqu'à <see cref="Unlock"/>.
+    /// Opens the vault. The file's mode wins; without a file, the configured mode is used.
+    /// In master password mode, the vault stays locked until <see cref="Unlock"/>.
     /// </summary>
     public static SecretVault Open(StorageMode configuredMode)
     {
@@ -73,7 +73,7 @@ public sealed class SecretVault
         }
         catch
         {
-            try { File.Copy(VaultPath, VaultPath + ".corrompu", overwrite: true); } catch { }
+            try { File.Copy(VaultPath, VaultPath + ".corrupt", overwrite: true); } catch { }
         }
 
         if (file is null)
@@ -98,7 +98,7 @@ public sealed class SecretVault
                 }
                 catch (CryptographicException)
                 {
-                    // Autre utilisateur Windows ou profil réinstallé : les secrets sont perdus
+                    // Another Windows user or a reinstalled profile: the secrets are lost
                     vault._secrets = new();
                 }
                 break;
@@ -110,14 +110,14 @@ public sealed class SecretVault
         return vault;
     }
 
-    /// <summary>Déverrouille avec le mot de passe maître (≈ 0,5 s : à appeler hors du thread UI).</summary>
+    /// <summary>Unlocks with the master password (≈ 0.5 s: call it off the UI thread).</summary>
     public bool Unlock(string password)
     {
         if (!IsLocked)
             return true;
         if (_lockedFile is not { } file)
         {
-            // Premier mot de passe : coffre neuf
+            // First password: brand new vault
             _salt = RandomNumberGenerator.GetBytes(16);
             _key = DeriveKey(password, _salt, Argon2MemoryKb, Argon2Iterations, Argon2Parallelism);
             _secrets = new();
@@ -141,12 +141,12 @@ public sealed class SecretVault
         catch (CryptographicException)
         {
             CryptographicOperations.ZeroMemory(key);
-            return false;   // mauvais mot de passe (tag GCM invalide)
+            return false;   // wrong password (invalid GCM tag)
         }
 
         _key = key;
         _salt = salt;
-        // Paramètres d'un ancien fichier : on ré-enregistre avec les actuels au prochain Save
+        // File written with older parameters: saved again with the current ones on the next Save
         if (file.MemoryKb != Argon2MemoryKb || file.Iterations != Argon2Iterations || file.Parallelism != Argon2Parallelism)
             _key = DeriveKey(password, _salt, Argon2MemoryKb, Argon2Iterations, Argon2Parallelism);
         _lockedFile = null;
@@ -154,19 +154,19 @@ public sealed class SecretVault
         return true;
     }
 
-    /// <summary>Oublie les secrets et la clé (mode mot de passe maître uniquement).</summary>
+    /// <summary>Forgets the secrets and the key (master password mode only).</summary>
     public void Lock()
     {
         if (Mode != StorageMode.MasterPassword || IsLocked)
             return;
-        Save();   // garantit que le fichier est à jour avant d'oublier la clé
+        Save();   // make sure the file is up to date before forgetting the key
         try
         {
             _lockedFile = JsonSerializer.Deserialize<VaultFile>(File.ReadAllText(VaultPath), AppConfig.JsonOptions);
         }
         catch
         {
-            return;   // sans fichier relisible, verrouiller ferait perdre les secrets
+            return;   // without a readable file, locking would lose the secrets
         }
         _secrets = new();
         if (_key is not null)
@@ -187,7 +187,7 @@ public sealed class SecretVault
     public void Set(Guid serverId, ServerSecrets secrets)
     {
         if (IsLocked)
-            throw new InvalidOperationException("Le coffre est verrouillé.");
+            throw new InvalidOperationException(Loc.T("Vault.IsLocked"));
         if (secrets.IsEmpty)
             _secrets.Remove(serverId);
         else
@@ -201,15 +201,15 @@ public sealed class SecretVault
             Save();
     }
 
-    /// <summary>Change le mode de stockage (coffre ouvert) et réécrit le fichier.</summary>
+    /// <summary>Changes the storage mode (vault open) and rewrites the file.</summary>
     public void ChangeMode(StorageMode mode, string? masterPassword = null)
     {
         if (IsLocked)
-            throw new InvalidOperationException("Déverrouillez le coffre avant de changer de mode.");
+            throw new InvalidOperationException(Loc.T("Vault.UnlockBeforeModeChange"));
         if (mode == StorageMode.MasterPassword)
         {
             if (string.IsNullOrEmpty(masterPassword))
-                throw new ArgumentException("Mot de passe maître requis.", nameof(masterPassword));
+                throw new ArgumentException(Loc.T("Vault.MasterPasswordRequired"), nameof(masterPassword));
             _salt = RandomNumberGenerator.GetBytes(16);
             _key = DeriveKey(masterPassword, _salt, Argon2MemoryKb, Argon2Iterations, Argon2Parallelism);
         }

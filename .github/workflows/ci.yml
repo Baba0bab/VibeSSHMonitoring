@@ -1,4 +1,4 @@
-# Compilation et tests à chaque push sur main et à chaque pull request
+# Build and tests on every push to main and every pull request
 name: CI
 
 on:
@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: dotnet build VibeSSHMonitoring.slnx -c Release --no-restore
 
-      # Les tests de scripts shell utilisent le sh de Git for Windows, présent sur les runners
+      # The shell script tests use the sh of Git for Windows, available on the runners
       - name: Tests
         run: dotnet test Tests/VibeSSHMonitoring.Tests.csproj -c Release --no-build --logger trx --results-directory TestResults
 

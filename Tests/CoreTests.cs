@@ -3,13 +3,14 @@
 
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using VibeSSHMonitoring.Core;
 using VibeSSHMonitoring.UI;
 using Xunit;
 
 namespace VibeSSHMonitoring.Tests;
 
-/// <summary>Dossier de configuration jetable, fixé avant le premier accès à AppConfig.</summary>
+/// <summary>Throwaway configuration folder, set before the first access to AppConfig.</summary>
 public static class TestHome
 {
     public static readonly string Path = CreateHome();
@@ -53,7 +54,7 @@ public class VaultTests
         Assert.True(vault.IsLocked);
         Assert.Null(vault.Get(Server).Password);
 
-        var reopened = SecretVault.Open(StorageMode.Dpapi);   // le mode du fichier fait foi
+        var reopened = SecretVault.Open(StorageMode.Dpapi);   // the file's mode wins
         Assert.Equal(StorageMode.MasterPassword, reopened.Mode);
         Assert.True(reopened.IsLocked);
         Assert.False(reopened.Unlock("wrong"));
@@ -142,7 +143,7 @@ public class ParserTests
         Assert.Equal("Debian GNU/Linux 12 (bookworm)", r.Os);
         Assert.Equal(TimeSpan.FromSeconds(93784.12), r.Uptime);
         Assert.Equal(4, r.Cpus);
-        // total = 500 jiffies, idle+iowait = 350 → 30 % occupé
+        // total = 500 jiffies, idle+iowait = 350 → 30% busy
         Assert.Equal(30, r.CpuPercent!.Value, 1);
         Assert.Equal(8000000, r.MemTotalKb);
         Assert.True(r.RebootRequired);
@@ -211,8 +212,8 @@ public class ParserTests
 }
 
 /// <summary>
-/// Les scripts envoyés aux serveurs passent par sh : on vérifie leur syntaxe (et la sonde
-/// entière) avec le sh de Git for Windows, quand il est installé.
+/// The scripts sent to servers run through sh: their syntax (and the whole probe) is checked
+/// with the sh of Git for Windows, when it is installed.
 /// </summary>
 public class ShellScriptTests
 {
@@ -240,7 +241,7 @@ public class ShellScriptTests
         new object[] { RemoteCommands.AptUpgrade(UpgradeKind.FullUpgrade, autoRemove: true) },
         new object[] { RemoteCommands.Reboot },
         new object[] { SshKeys.InstallScript },
-        // Imbrication réelle utilisée pour sudo et su
+        // Actual nesting used for sudo and su
         new object[] { "LC_ALL=C sudo -S -p '' -- sh -c " + RemoteExec.Quote("exec </dev/null; " + RemoteCommands.AptUpgrade(UpgradeKind.Upgrade, false)) },
         new object[] { "LC_ALL=C exec su - root -s /bin/sh -c " + RemoteExec.Quote("exec </dev/null; " + RemoteCommands.BuildProbe(true, true, true) + "\nrc=$?; echo; echo \"__SVM_RC_${rc}__\"") }
     };
@@ -260,12 +261,12 @@ public class ShellScriptTests
     {
         if (Sh is null)
             return;
-        // sh lancé hors de Git Bash : /usr/bin (awk, sed…) n'est pas dans le PATH
+        // sh started outside Git Bash: /usr/bin (awk, sed…) is not in the PATH
         var (_, output) = RunSh("-c", "PATH=/usr/bin:$PATH\n" + RemoteCommands.BuildProbe(true, true, true));
         var r = RemoteCommands.ParseProbe(output, updates: true);
         Assert.NotNull(r.Hostname);
-        Assert.NotNull(r.MemTotalKb);      // /proc/meminfo émulé par MSYS
-        Assert.NotNull(r.MemAvailableKb);  // estimation sans MemAvailable
+        Assert.NotNull(r.MemTotalKb);      // /proc/meminfo emulated by MSYS
+        Assert.NotNull(r.MemAvailableKb);  // estimate without MemAvailable
         Assert.NotNull(r.CpuPercent);
         Assert.False(r.HasApt);
     }
@@ -279,4 +280,42 @@ public class ShellScriptTests
         var (_, output) = RunSh("-c", "printf '%s' " + RemoteExec.Quote(tricky));
         Assert.Equal(tricky, output);
     }
+}
+
+/// <summary>Every language must have exactly the English keys, with the same placeholders.</summary>
+public class LocalizationTests
+{
+    public static IEnumerable<object[]> OtherLanguages() =>
+        Loc.Languages.Where(l => l.Code != Loc.DefaultLanguage).Select(l => new object[] { l.Code });
+
+    private static string[] Placeholders(string text) =>
+        Regex.Matches(text, @"\{\d+\}").Select(m => m.Value).Order().ToArray();
+
+    [Theory]
+    [MemberData(nameof(OtherLanguages))]
+    public void Language_HasSameKeysAndPlaceholdersAsEnglish(string code)
+    {
+        var english = Loc.Load(Loc.DefaultLanguage);
+        var other = Loc.Load(code);
+
+        Assert.Empty(english.Keys.Except(other.Keys));
+        Assert.Empty(other.Keys.Except(english.Keys));
+        foreach (var (key, text) in english)
+        {
+            Assert.True(Placeholders(text).SequenceEqual(Placeholders(other[key])), $"{code}: placeholders of {key}");
+            Assert.True(text.Count(c => c == '|') == other[key].Count(c => c == '|'), $"{code}: '|' separators of {key}");
+            Assert.False(string.IsNullOrWhiteSpace(other[key]), $"{code}: empty {key}");
+        }
+    }
+
+    [Fact]
+    public void Resolve_FallsBackToEnglish()
+    {
+        Assert.Equal("fr", Loc.Resolve("fr"));
+        Assert.Equal("en", Loc.Resolve("xx"));
+        Assert.Contains(Loc.Resolve(Loc.SystemLanguage), Loc.Languages.Select(l => l.Code));
+    }
+
+    [Fact]
+    public void T_ReturnsKeyWhenMissing() => Assert.Equal("No.Such.Key", Loc.T("No.Such.Key"));
 }

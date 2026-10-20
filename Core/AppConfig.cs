@@ -8,41 +8,44 @@ using System.Text.Json.Serialization;
 namespace VibeSSHMonitoring.Core;
 
 /// <summary>
-/// Configuration de l'application (%APPDATA%\VibeSSHMonitoring\config.json) :
-/// réglages globaux et liste des serveurs, sans aucun secret.
+/// Application configuration (%APPDATA%\VibeSSHMonitoring\config.json): global settings and
+/// the server list, without any secret.
 /// </summary>
 public class AppConfig
 {
     public List<ServerConfig> Servers { get; set; } = new();
 
-    /// <summary>Réglages globaux, que chaque serveur peut remplacer.</summary>
+    /// <summary>Global settings, which each server can override.</summary>
     public ServerSettings Defaults { get; set; } = ServerSettings.CreateDefaults();
 
-    public StorageMode Storage { get; set; } = StorageMode.Dpapi;
-    public int AutoLockMinutes { get; set; }               // 0 = jamais (mot de passe maître)
+    /// <summary>Interface language: "system" (Windows display language) or a code from <see cref="Loc.Languages"/>.</summary>
+    public string Language { get; set; } = Loc.SystemLanguage;
 
-    /// <summary>Terminal personnalisé : {host} {port} {user} {name} {keyopt}.</summary>
+    public StorageMode Storage { get; set; } = StorageMode.Dpapi;
+    public int AutoLockMinutes { get; set; }               // 0 = never (master password)
+
+    /// <summary>Custom terminal: {host} {port} {user} {name} {keyopt} {ssh}.</summary>
     public string CustomTerminalCommand { get; set; } = "wt.exe new-tab ssh {keyopt} -p {port} {user}@{host}";
-    /// <summary>Terminaux externes : copie le mot de passe dans le presse-papiers (effacé après 30 s).</summary>
+    /// <summary>External terminals: copy the password to the clipboard (cleared after 30 s).</summary>
     public bool CopyPasswordForExternal { get; set; } = true;
 
     public bool StartMinimized { get; set; }
     public bool CloseToTray { get; set; } = true;
 
-    // ===== Mises à jour de l'application (GitHub Releases, via Velopack) =====
-    public bool AppUpdateCheck { get; set; } = true;          // recherche au démarrage puis toutes les 12 h
-    public bool AppUpdateAutoInstall { get; set; } = true;    // installe à la fermeture (ou au démarrage suivant)
-    public bool AppUpdatePrerelease { get; set; }             // inclut les préversions (bêta)
+    // ===== Application updates (GitHub Releases, through Velopack) =====
+    public bool AppUpdateCheck { get; set; } = true;          // check at startup, then every 12 h
+    public bool AppUpdateAutoInstall { get; set; } = true;    // install on exit (or at the next startup)
+    public bool AppUpdatePrerelease { get; set; }             // include pre-releases (beta)
 
-    /// <summary>%APPDATA%\VibeSSHMonitoring, ou le dossier de la variable VIBESSHMONITORING_HOME (tests, mode portable).</summary>
+    /// <summary>%APPDATA%\VibeSSHMonitoring, or the VIBESSHMONITORING_HOME folder (tests, portable use).</summary>
     public static string ConfigDirectory { get; } =
         Environment.GetEnvironmentVariable("VIBESSHMONITORING_HOME") is { Length: > 0 } custom
             ? custom
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VibeSSHMonitoring");
 
     /// <summary>
-    /// Cache local (WebView2 du terminal intégré). Hors de %LOCALAPPDATA%\VibeSSHMonitoring,
-    /// qui est le dossier d'installation géré par l'installateur.
+    /// Local cache (WebView2 data of the built-in terminal). Outside %LOCALAPPDATA%\VibeSSHMonitoring,
+    /// which is the install folder owned by the installer.
     /// </summary>
     public static string CacheDirectory { get; } =
         Environment.GetEnvironmentVariable("VIBESSHMONITORING_HOME") is { Length: > 0 } custom
@@ -59,8 +62,8 @@ public class AppConfig
     };
 
     /// <summary>
-    /// Reprend la configuration de l'ancien nom de l'application (SshVibeMonitoring) au premier
-    /// lancement. Les fichiers sont copiés, pas déplacés : l'ancien dossier reste en sauvegarde.
+    /// Picks up the configuration of the application's former name (SshVibeMonitoring) on first
+    /// launch. Files are copied, not moved: the old folder stays as a backup.
     /// </summary>
     private static void MigrateLegacyDirectory()
     {
@@ -81,7 +84,7 @@ public class AppConfig
         }
         catch
         {
-            // Migration non critique : l'application repart d'une configuration vide
+            // Not critical: the application starts from an empty configuration
         }
     }
 
@@ -97,15 +100,15 @@ public class AppConfig
         }
         catch
         {
-            // Config illisible : on la garde de côté plutôt que de l'écraser
-            try { File.Copy(ConfigPath, ConfigPath + ".corrompu", overwrite: true); } catch { }
+            // Unreadable configuration: keep it aside rather than overwrite it
+            try { File.Copy(ConfigPath, ConfigPath + ".corrupt", overwrite: true); } catch { }
             config = new AppConfig();
         }
         config.Defaults.FillMissing(ServerSettings.CreateDefaults());
         return config;
     }
 
-    /// <summary>Écriture atomique : un fichier temporaire remplace l'ancien.</summary>
+    /// <summary>Atomic write: a temporary file replaces the previous one.</summary>
     public void Save()
     {
         try
@@ -117,7 +120,7 @@ public class AppConfig
         }
         catch
         {
-            // Sauvegarde non critique : la prochaine modification réessaiera
+            // Not critical: the next change will try again
         }
     }
 
