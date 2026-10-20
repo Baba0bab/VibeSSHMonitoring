@@ -319,3 +319,29 @@ public class LocalizationTests
     [Fact]
     public void T_ReturnsKeyWhenMissing() => Assert.Equal("No.Such.Key", Loc.T("No.Such.Key"));
 }
+
+[CollectionDefinition("culture", DisableParallelization = true)]
+public class CultureCollection { }
+
+/// <summary>Initialize changes the process cultures: run alone, then restore "system".</summary>
+[Collection("culture")]
+public class LanguageSettingTests
+{
+    [Fact]
+    public void System_StillMeansWindowsLanguage_AfterChoosingAnother()
+    {
+        string windows = Loc.Resolve(Loc.SystemLanguage);
+        string other = Loc.Languages.First(l => l.Code != windows).Code;
+        try
+        {
+            Loc.Initialize(other);
+            Assert.Equal(other, Loc.Language);
+            Assert.Equal(windows, Loc.Resolve(Loc.SystemLanguage));
+        }
+        finally
+        {
+            Loc.Initialize(Loc.SystemLanguage);
+        }
+        Assert.Equal(windows, Loc.Language);
+    }
+}

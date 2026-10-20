@@ -29,6 +29,11 @@ public static class Loc
     private static Dictionary<string, string>? _strings;
     private static Dictionary<string, string>? _fallback;
 
+    // Windows display language and regional format, read before Initialize replaces the
+    // thread cultures: "System" must keep meaning Windows' language, not the chosen one
+    private static readonly CultureInfo WindowsUICulture = CultureInfo.CurrentUICulture;
+    private static readonly CultureInfo WindowsCulture = CultureInfo.CurrentCulture;
+
     /// <summary>Language in use (two-letter code).</summary>
     public static string Language { get; private set; } = DefaultLanguage;
 
@@ -39,7 +44,7 @@ public static class Loc
     public static string Resolve(string? setting)
     {
         string code = string.IsNullOrWhiteSpace(setting) || setting == SystemLanguage
-            ? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName
+            ? WindowsUICulture.TwoLetterISOLanguageName
             : setting;
         return Languages.Any(l => l.Code == code) ? code : DefaultLanguage;
     }
@@ -55,8 +60,7 @@ public static class Loc
         _strings = Language == DefaultLanguage ? _fallback : Load(Language);
 
         // Keep the user's regional format (fr-CA, de-AT…) when it matches the chosen language
-        var current = CultureInfo.CurrentCulture;
-        Culture = current.TwoLetterISOLanguageName == Language ? current : CultureInfo.GetCultureInfo(Language);
+        Culture = WindowsCulture.TwoLetterISOLanguageName == Language ? WindowsCulture : CultureInfo.GetCultureInfo(Language);
         CultureInfo.DefaultThreadCurrentCulture = Culture;
         CultureInfo.DefaultThreadCurrentUICulture = Culture;
         CultureInfo.CurrentCulture = Culture;
