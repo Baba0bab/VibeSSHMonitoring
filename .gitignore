@@ -1,0 +1,57 @@
+# ===== Build .NET =====
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]64/
+publish/
+artifacts/
+*.nupkg
+*.snupkg
+
+# ===== Tests =====
+TestResults/
+*.trx
+coverage*.json
+coverage*.xml
+*.coverage
+
+# ===== IDE =====
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.user
+*.suo
+*.userprefs
+*.DotSettings.user
+*.swp
+*~
+
+# ===== Système =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+$RECYCLE.BIN/
+
+# ===== Données locales : ne jamais publier =====
+# Configuration et coffre de l'application, si un dossier de test est créé dans le dépôt
+config.json
+secrets.json
+secrets.json.tmp
+*.corrompu
+# Clés SSH
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.ppk
+*.pem
+
+# ===== Paquets Velopack (scripts/pack.ps1) =====
+Releases/
+release-body.md

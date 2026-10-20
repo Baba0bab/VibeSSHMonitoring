@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Terminal</title>
+<link rel="stylesheet" href="lib/xterm.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #17171E; overflow: hidden; }
+  #term { position: absolute; top: 10px; right: 6px; bottom: 6px; left: 12px; }
+  .xterm-viewport::-webkit-scrollbar { width: 10px; }
+  .xterm-viewport::-webkit-scrollbar-thumb { background: #3A3A48; border-radius: 5px; border: 2px solid #17171E; }
+  .xterm-viewport::-webkit-scrollbar-thumb:hover { background: #52526A; }
+</style>
+</head>
+<body>
+<div id="term"></div>
+<script src="lib/xterm.js"></script>
+<script src="lib/addon-fit.js"></script>
+<script src="lib/addon-web-links.js"></script>
+<script>
+  // Pont avec l'application : messages JSON via WebView2 (aucun accès réseau depuis la page)
+  const post = m => window.chrome.webview.postMessage(m);
+
+  const term = new Terminal({
+    fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, monospace',
+    fontSize: 14,
+    lineHeight: 1.15,
+    cursorBlink: true,
+    scrollback: 10000,
+    macOptionIsMeta: false,
+    theme: {
+      background: '#17171E', foreground: '#E6E6EE', cursor: '#B9B0FF', cursorAccent: '#17171E',
+      selectionBackground: '#7C6CF266',
+      black: '#2A2A35', red: '#F2615C', green: '#3DD68C', yellow: '#F5B94B',
+      blue: '#6CA7F2', magenta: '#B48CF2', cyan: '#4CC9D9', white: '#D6D6E2',
+      brightBlack: '#6F6F82', brightRed: '#FF8F8A', brightGreen: '#6EE7AE', brightYellow: '#FFD27A',
+      brightBlue: '#96C2FF', brightMagenta: '#CDB0FF', brightCyan: '#7EE3EE', brightWhite: '#FFFFFF'
+    }
+  });
+  const fit = new FitAddon.FitAddon();
+  term.loadAddon(fit);
+  term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => post({ t: 'link', url: uri })));
+  term.open(document.getElementById('term'));
+
+  function doFit() { try { fit.fit(); } catch (e) { } }
+
+  function b64ToBytes(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  function copySelection() {
+    if (!term.hasSelection()) return false;
+    post({ t: 'copy', text: term.getSelection() });
+    term.clearSelection();
+    return true;
+  }
+
+  term.onData(d => post({ t: 'in', d }));
+  term.onResize(({ cols, rows }) => post({ t: 'resize', cols, rows }));
+
+  // Raccourcis Windows : Ctrl+C copie s'il y a une sélection (sinon interruption), Ctrl+V colle
+  term.attachCustomKeyEventHandler(e => {
+    if (e.type !== 'keydown' || !e.ctrlKey || e.altKey) return true;
+    if (e.code === 'KeyC' && (e.shiftKey || term.hasSelection())) { copySelection(); return false; }
+    if (e.code === 'KeyV') { post({ t: 'paste' }); e.preventDefault(); return false; }
+    return true;
+  });
+
+  // Clic droit façon PuTTY / Windows Terminal : copie la sélection, sinon colle
+  document.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (!copySelection()) post({ t: 'paste' });
+  });
+
+  window.chrome.webview.addEventListener('message', e => {
+    const m = e.data;
+    switch (m.t) {
+      case 'out': term.write(b64ToBytes(m.b)); break;
+      case 'status': term.write('\r\n\x1b[38;2;163;163;180m' + m.text + '\x1b[0m\r\n'); break;
+      case 'paste': if (m.text) term.paste(m.text); break;
+      case 'focus': term.focus(); break;
+      case 'font': term.options.fontSize = m.size; doFit(); break;
+      case 'clear': term.reset(); break;
+    }
+  });
+
+  new ResizeObserver(() => doFit()).observe(document.getElementById('term'));
+  doFit();
+  term.focus();
+  post({ t: 'ready', cols: term.cols, rows: term.rows });
+</script>
+</body>
+</html>

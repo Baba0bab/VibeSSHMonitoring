@@ -1,0 +1,71 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>VibeSSHMonitoring</AssemblyName>
+    <RootNamespace>VibeSSHMonitoring</RootNamespace>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Point d'entrée maison (Program.cs) : Velopack doit s'exécuter avant WPF -->
+    <StartupObject>VibeSSHMonitoring.Program</StartupObject>
+    <!-- Version : remplacée par celle du tag (v1.2.3) dans le workflow de release -->
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>Vibe SSH Monitoring</Product>
+    <AssemblyTitle>Vibe SSH Monitoring</AssemblyTitle>
+    <Description>Supervision et mise à jour de serveurs Debian / Ubuntu en SSH</Description>
+    <Authors>Baba0bab</Authors>
+    <Copyright>Copyright © 2026 Baba0bab — GPL-3.0-or-later</Copyright>
+    <RepositoryUrl>https://github.com/Baba0bab/VibeSSHMonitoring</RepositoryUrl>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <!-- Code précompilé à la publication : démarrage plus rapide (lancement avec Windows) -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- Exe unique : les DLL natives (WebView2Loader) y sont incluses et extraites au besoin -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
+    <!-- Publication : ni documentation XML des paquets, ni .pdb à part (symboles intégrés à l'exe) -->
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <!-- Version autonome (runtime .NET inclus) : exe compressé, ~2,5 fois plus petit -->
+  <PropertyGroup Condition="'$(SelfContained)' == 'true'">
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <!-- Builds reproductibles sur GitHub Actions (chemins source normalisés) -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
+
+  <!-- Projet de tests et fichiers du dépôt : hors de l'application -->
+  <ItemGroup>
+    <Compile Remove="Tests\**;artifacts\**" />
+    <None Remove="Tests\**;artifacts\**" />
+    <Page Remove="Tests\**;artifacts\**" />
+  </ItemGroup>
+
+  <!-- Licences livrées avec l'application -->
+  <ItemGroup>
+    <None Include="LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Terminal intégré : page xterm.js chargée hors ligne par WebView2 -->
+  <ItemGroup>
+    <None Include="Assets\terminal\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

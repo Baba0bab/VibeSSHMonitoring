@@ -1,0 +1,21 @@
+# Normalisation des fins de ligne : LF dans le dépôt, CRLF à l'extraction sous Windows
+* text=auto
+
+*.cs      text diff=csharp
+*.xaml    text
+*.csproj  text
+*.slnx    text
+*.json    text
+*.md      text
+*.yml     text
+*.html    text
+*.js      text
+*.css     text
+*.ps1     text eol=crlf
+*.sh      text eol=lf
+
+# Binaires
+*.ico     binary
+*.png     binary
+*.jpg     binary
+*.gif     binary

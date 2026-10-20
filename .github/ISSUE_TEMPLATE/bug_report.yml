@@ -1,0 +1,52 @@
+name: Bug / Problème
+description: Something does not work as expected / Quelque chose ne fonctionne pas comme prévu
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **Remove IP addresses, user names and passwords** from everything you paste. / **Retirez adresses IP, noms d'utilisateur et mots de passe** de tout ce que vous collez.
+        Security vulnerability? Do not open an issue, see SECURITY.md. / Faille de sécurité ? Pas d'issue, voir SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: App version / Version de l'application
+      description: Paramètres → À propos
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: input
+    id: server
+    attributes:
+      label: Server OS / Système du serveur
+      placeholder: "Debian 12, Ubuntu 24.04…"
+  - type: dropdown
+    id: access
+    attributes:
+      label: Root access / Accès root
+      options: ["Root direct", "sudo", "su", "N/A"]
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Étapes pour reproduire
+      placeholder: "1. …\n2. …"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual / Attendu et obtenu
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Error message or operation log / Message d'erreur ou journal des opérations
+      render: text

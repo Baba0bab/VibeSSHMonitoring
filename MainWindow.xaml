@@ -1,0 +1,760 @@
+<Window x:Class="VibeSSHMonitoring.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:VibeSSHMonitoring.UI"
+        x:Name="Root"
+        Title="Vibe SSH Monitoring"
+        Width="1180" Height="780" MinWidth="640" MinHeight="520"
+        Background="{StaticResource BaseBrush}"
+        FontFamily="{StaticResource TextFont}"
+        FontSize="14"
+        Foreground="{StaticResource TextBrush}"
+        UseLayoutRounding="True"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- ===== Menu « ⋯ » des cartes ===== -->
+        <ContextMenu x:Key="ServerMenu">
+            <MenuItem Header="Détails" Tag="&#xE946;" Click="MenuDetails_Click"/>
+            <MenuItem Header="Actualiser" Tag="&#xE72C;" Click="MenuRefresh_Click"/>
+            <MenuItem Header="Modifier…" Tag="&#xE70F;" Click="MenuEdit_Click"/>
+            <MenuItem Header="Dupliquer…" Tag="&#xE8C8;" Click="MenuDuplicate_Click"/>
+            <Separator/>
+            <MenuItem Header="Redémarrer le serveur…" Tag="&#xE7E8;" Click="MenuReboot_Click"/>
+            <MenuItem Header="Supprimer…" Tag="&#xE74D;" Foreground="{StaticResource DangerBrush}" Click="MenuDelete_Click"/>
+        </ContextMenu>
+
+        <!-- ===== Ligne de jauge ===== -->
+        <Style x:Key="MeterLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="44"/>
+        </Style>
+        <Style x:Key="MeterValue" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Margin" Value="10,0,0,0"/>
+        </Style>
+
+        <!-- ===== Carte serveur ===== -->
+        <DataTemplate x:Key="ServerCardTemplate">
+            <Border x:Name="card" Style="{StaticResource Card}" Margin="0,0,12,12" Padding="16,14,16,12"
+                    Cursor="Hand" MouseLeftButtonUp="Card_MouseLeftButtonUp">
+                <StackPanel>
+                    <!-- En-tête : sélection, état, nom, mises à jour -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Style="{StaticResource SelectBox}" IsChecked="{Binding IsSelected}"
+                                  VerticalAlignment="Top" Margin="0,2,12,0" ToolTip="Sélectionner pour une action groupée"/>
+                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="9" Height="9" Fill="{Binding StateBrush}" Margin="0,0,8,0"
+                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Endpoint}" Style="{StaticResource Caption}" Margin="17,2,0,0"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding StateText}" FontSize="12" Foreground="{Binding StateBrush}"
+                                       HorizontalAlignment="Right"/>
+                            <TextBlock Text="{Binding LatencyText}" Style="{StaticResource Caption}" HorizontalAlignment="Right"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Groupes -->
+                    <ItemsControl ItemsSource="{Binding Tags}" Margin="30,8,0,0"
+                                  Visibility="{Binding HasTags, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource NeutralBadge}" Margin="0,0,4,4">
+                                    <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Système -->
+                    <TextBlock Style="{StaticResource Caption}" Margin="30,8,0,0" TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding ShowSystem, Converter={StaticResource BoolToVisibility}}">
+                        <Run Text="{Binding OsText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                        <Run Text="  ·  en service depuis"/>
+                        <Run Text="{Binding UptimeText, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <!-- Ressources -->
+                    <Grid Margin="30,10,0,0" Visibility="{Binding ShowResources, Converter={StaticResource BoolToVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto" MinWidth="104"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="20"/>
+                            <RowDefinition Height="20"/>
+                            <RowDefinition Height="20"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="CPU" Style="{StaticResource MeterLabel}"/>
+                        <ProgressBar Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding CpuPercent, Mode=OneWay}"
+                                     Foreground="{Binding CpuBrush}"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CpuText}" Style="{StaticResource MeterValue}"/>
+                        <TextBlock Grid.Row="1" Text="RAM" Style="{StaticResource MeterLabel}"/>
+                        <ProgressBar Grid.Row="1" Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding MemPercent, Mode=OneWay}"
+                                     Foreground="{Binding MemBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MemText}" Style="{StaticResource MeterValue}"/>
+                        <TextBlock Grid.Row="2" Text="Disque" Style="{StaticResource MeterLabel}"/>
+                        <ProgressBar Grid.Row="2" Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding DiskPercent, Mode=OneWay}"
+                                     Foreground="{Binding DiskBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DiskText}" Style="{StaticResource MeterValue}"/>
+                    </Grid>
+
+                    <!-- Mises à jour -->
+                    <WrapPanel Margin="30,10,0,0" Visibility="{Binding ShowUpdates, Converter={StaticResource BoolToVisibility}}">
+                        <Border x:Name="updatesBadge" Style="{StaticResource NeutralBadge}" Margin="0,0,6,4" Padding="8,3"
+                                Visibility="{Binding HasUpdateInfo, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="updatesIcon" Style="{StaticResource Icon}" Text="&#xE896;" FontSize="11"
+                                           Margin="0,0,6,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock x:Name="updatesText" Text="{Binding UpdatesText}" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DangerBadge}" Margin="0,0,6,4" Padding="8,3"
+                                Visibility="{Binding HasSecurityUpdates, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xEA18;" FontSize="11" Margin="0,0,6,0"
+                                           Foreground="#FFFF8F8A"/>
+                                <TextBlock FontSize="12" Foreground="#FFFF8F8A">
+                                    <Run Text="{Binding SecurityCount, Mode=OneWay}"/><Run Text=" sécurité"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource WarningBadge}" Margin="0,0,6,4" Padding="8,3"
+                                Visibility="{Binding RebootRequired, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="11" Margin="0,0,6,0"
+                                           Foreground="{StaticResource WarningBrush}"/>
+                                <TextBlock Text="Redémarrage requis" FontSize="12" Foreground="{StaticResource WarningBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
+
+                    <!-- Opération en cours / dernier relevé -->
+                    <StackPanel Orientation="Horizontal" Margin="30,6,0,0">
+                        <Control Style="{StaticResource Spinner}" Width="12" Height="12" Margin="0,0,8,0"
+                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+                        <TextBlock Text="{Binding StatusLine}" FontSize="11" Foreground="{StaticResource TextTertiaryBrush}"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="300" ToolTip="{Binding StateDetail}"/>
+                    </StackPanel>
+
+                    <!-- Actions : passent à la ligne si la carte est étroite -->
+                    <DockPanel Margin="0,12,0,0" LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="32" Height="30" Content="&#xE712;"
+                                FontSize="14" VerticalAlignment="Top" ToolTip="Plus d'actions" Click="More_Click"/>
+                        <WrapPanel>
+                            <Button Style="{StaticResource SmallButton}" Tag="&#xE895;" Content="Check updates" Margin="0,0,6,6"
+                                    IsEnabled="{Binding IsIdle}" Click="CheckUpdates_Click"
+                                    ToolTip="apt update, puis liste des paquets à mettre à jour"/>
+                            <Button Style="{StaticResource SmallAccentButton}" Tag="&#xE896;" Content="Update"
+                                    Margin="0,0,6,6" IsEnabled="{Binding IsIdle}" Click="Upgrade_Click"
+                                    ToolTip="apt update + upgrade (non interactif)"/>
+                            <Button Style="{StaticResource SmallButton}" Tag="&#xE756;" Content="Open SSH"
+                                    Margin="0,0,6,6" Click="OpenSsh_Click" ToolTip="Ouvrir un terminal sur ce serveur"/>
+                        </WrapPanel>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="card" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                    <Setter TargetName="card" Property="Background" Value="{StaticResource CardSelectedBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasUpdates}" Value="True">
+                    <Setter TargetName="updatesBadge" Property="Background" Value="{StaticResource AccentSubtleBrush}"/>
+                    <Setter TargetName="updatesText" Property="Foreground" Value="{StaticResource AccentLightBrush}"/>
+                    <Setter TargetName="updatesIcon" Property="Foreground" Value="{StaticResource AccentLightBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsUpToDate}" Value="True">
+                    <Setter TargetName="updatesBadge" Property="Background" Value="#263DD68C"/>
+                    <Setter TargetName="updatesText" Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                    <Setter TargetName="updatesIcon" Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                    <Setter TargetName="updatesIcon" Property="Text" Value="&#xE73E;"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- ===== Tuile d'information (page de détail) ===== -->
+        <Style x:Key="InfoTile" TargetType="Border" BasedOn="{StaticResource Card}">
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Padding" Value="14,12"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ================= Menu latéral ================= -->
+        <Border x:Name="Sidebar" Width="240" ClipToBounds="True">
+            <DockPanel Margin="8,4,8,12">
+                <Button x:Name="NavToggleButton" DockPanel.Dock="Top" Style="{StaticResource IconButton}"
+                        Content="&#xE700;" HorizontalAlignment="Left" Margin="0,0,0,8"
+                        ToolTip="Réduire ou développer le menu" Click="NavToggleButton_Click"/>
+
+                <!-- Pied : coffre et résumé, visibles depuis toutes les pages -->
+                <Border DockPanel.Dock="Bottom" Margin="0,8,0,0" Padding="0,12,0,0"
+                        BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0">
+                    <Grid Width="224" Height="40" HorizontalAlignment="Left">
+                        <Grid x:Name="SidebarVaultHost" Width="40" HorizontalAlignment="Left" Background="Transparent">
+                            <Ellipse Width="30" Height="30" Fill="{StaticResource ControlBrush}"/>
+                            <TextBlock x:Name="SidebarVaultIcon" Style="{StaticResource Icon}" Text="&#xE785;" FontSize="14"
+                                       HorizontalAlignment="Center"/>
+                            <Ellipse x:Name="SidebarStatusDot" Width="10" Height="10" Margin="20,20,0,0"
+                                     Stroke="{StaticResource BaseBrush}" StrokeThickness="2" Fill="{StaticResource NeutralBrush}"/>
+                        </Grid>
+                        <StackPanel Margin="48,0,44,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="SidebarSummaryText" Text="Aucun serveur" FontSize="13"
+                                       FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="SidebarVaultText" FontSize="12" Margin="0,1,0,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <Button x:Name="SidebarLockButton" Style="{StaticResource IconButton}" Width="36"
+                                HorizontalAlignment="Right" Content="&#xE72E;" Click="SidebarLockButton_Click"/>
+                    </Grid>
+                </Border>
+
+                <!-- Mise à jour de l'application prête : visible depuis toutes les pages -->
+                <Button x:Name="SidebarUpdateButton" DockPanel.Dock="Bottom" Style="{StaticResource SidebarAction}"
+                        Tag="&#xE777;" Visibility="Collapsed" Click="AppUpdateInstall_Click"/>
+
+                <RadioButton x:Name="NavSettings" DockPanel.Dock="Bottom" Style="{StaticResource NavItem}"
+                             Tag="&#xE713;" Content="Paramètres" ToolTip="Paramètres (Ctrl+3)" Checked="Nav_Checked"/>
+
+                <StackPanel>
+                    <RadioButton x:Name="NavServers" Style="{StaticResource NavItem}"
+                                 Tag="&#xE977;" Content="Serveurs" ToolTip="Serveurs (Ctrl+1)" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavTerminals" Style="{StaticResource NavItem}"
+                                 Tag="&#xE756;" ToolTip="Terminaux (Ctrl+2)" Checked="Nav_Checked">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Terminaux" VerticalAlignment="Center"/>
+                            <Border x:Name="TerminalCountBadge" Style="{StaticResource Badge}" Margin="10,0,0,0" Visibility="Collapsed">
+                                <TextBlock x:Name="TerminalCountText" FontSize="11" Foreground="{StaticResource AccentLightBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ================= Contenu ================= -->
+        <Border Grid.Column="1" Background="{StaticResource LayerBrush}" BorderBrush="{StaticResource StrokeBrush}"
+                BorderThickness="1,1,0,0" CornerRadius="8,0,0,0" ClipToBounds="True">
+            <Grid>
+                <ScrollViewer x:Name="PageScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Focusable="False" SizeChanged="PageScroller_SizeChanged">
+                    <Grid x:Name="PageHost" MaxWidth="1240" Margin="36,28,36,36">
+
+                        <!-- ========== Serveurs ========== -->
+                        <StackPanel x:Name="ServersPage">
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Serveurs" Style="{StaticResource PageTitle}"/>
+                                    <TextBlock x:Name="ServersSubtitle" Style="{StaticResource PageSubtitle}" Margin="0,0,0,20"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,0,0">
+                                    <Button Tag="&#xE72C;" Content="Tout actualiser" Margin="0,0,8,0" Click="RefreshAll_Click"
+                                            ToolTip="Relevé immédiat de tous les serveurs"/>
+                                    <Button Style="{StaticResource AccentButton}" Tag="&#xE710;" Content="Ajouter un serveur"
+                                            Click="AddServer_Click"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Recherche et filtres par groupe -->
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="260"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid VerticalAlignment="Top">
+                                    <TextBox x:Name="SearchBox" Padding="34,0,10,0" TextChanged="SearchBox_TextChanged"/>
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" FontSize="13" Margin="12,0,0,0"
+                                               Foreground="{StaticResource TextTertiaryBrush}" IsHitTestVisible="False"/>
+                                    <TextBlock x:Name="SearchHint" Text="Rechercher (nom, adresse, groupe)" Margin="35,0,0,0"
+                                               VerticalAlignment="Center" FontSize="13" IsHitTestVisible="False"
+                                               Foreground="{StaticResource TextTertiaryBrush}"/>
+                                </Grid>
+                                <WrapPanel x:Name="TagFilters" Grid.Column="1" Margin="12,2,0,0"/>
+                            </Grid>
+
+                            <!-- Barre d'actions groupées -->
+                            <Border x:Name="SelectionBar" Style="{StaticResource Card}" Background="{StaticResource CardSelectedBrush}"
+                                    BorderBrush="{StaticResource AccentBrush}" Padding="14,8" Margin="0,0,0,12" Visibility="Collapsed">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock x:Name="SelectionText" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                        <Button Style="{StaticResource LinkButton}" Content="Tout sélectionner" Margin="0,0,14,0"
+                                                Click="SelectAll_Click"/>
+                                        <Button Style="{StaticResource LinkButton}" Content="Désélectionner" Click="ClearSelection_Click"/>
+                                    </StackPanel>
+                                    <WrapPanel HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE72C;" Content="Actualiser" Margin="6,2,0,2"
+                                                Click="BulkRefresh_Click"/>
+                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE895;" Content="Check updates" Margin="6,2,0,2"
+                                                Click="BulkCheck_Click"/>
+                                        <Button Style="{StaticResource SmallAccentButton}" Tag="&#xE896;" Content="Update" Margin="6,2,0,2"
+                                                Click="BulkUpgrade_Click"/>
+                                        <Button Style="{StaticResource SmallButton}" Tag="&#xE7E8;" Content="Redémarrer" Margin="6,2,0,2"
+                                                Click="BulkReboot_Click"/>
+                                    </WrapPanel>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- État vide -->
+                            <Border x:Name="EmptyState" Style="{StaticResource Card}" Padding="28,32" Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE977;" FontSize="40" HorizontalAlignment="Center"
+                                               Foreground="{StaticResource AccentLightBrush}" Margin="0,0,0,16"/>
+                                    <TextBlock x:Name="EmptyTitle" Text="Aucun serveur pour l'instant" FontSize="18" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="EmptyText" Style="{StaticResource Caption}" FontSize="13" Margin="0,6,0,18"
+                                               TextAlignment="Center" MaxWidth="460"
+                                               Text="Ajoutez un VPS ou un serveur dédié (Debian / Ubuntu) : adresse, utilisateur et mot de passe ou clé SSH."/>
+                                    <Button x:Name="EmptyAddButton" Style="{StaticResource AccentButton}" Tag="&#xE710;"
+                                            Content="Ajouter un serveur" HorizontalAlignment="Center" Click="AddServer_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <ItemsControl x:Name="ServersList" ItemTemplate="{StaticResource ServerCardTemplate}" Margin="0,0,-12,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel ItemWidth="{Binding CardWidth, ElementName=Root}"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- ========== Détail d'un serveur ========== -->
+                        <StackPanel x:Name="DetailPage" Visibility="Collapsed">
+                            <Button Style="{StaticResource LinkButton}" HorizontalAlignment="Left" Margin="0,0,0,14"
+                                    Click="BackToServers_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE72B;" FontSize="12" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Serveurs"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse Width="12" Height="12" Fill="{Binding StateBrush}" Margin="0,4,12,0"
+                                                 VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource PageTitle}"/>
+                                    </StackPanel>
+                                    <TextBlock Style="{StaticResource PageSubtitle}" Margin="24,0,0,20">
+                                        <Run Text="{Binding Endpoint, Mode=OneWay}"/>
+                                        <Run Text=" · "/>
+                                        <Run Text="{Binding AccessText, Mode=OneWay}"/>
+                                        <Run Text=" · "/>
+                                        <Run Text="{Binding StateText, Mode=OneWay}" Foreground="{Binding StateBrush}"/>
+                                        <Run Text="{Binding LatencyText, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                                <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12,4,0,0" MaxWidth="560">
+                                    <Button Tag="&#xE72C;" Content="Actualiser" Margin="0,0,8,8" IsEnabled="{Binding IsIdle}"
+                                            Click="DetailRefresh_Click"/>
+                                    <Button Tag="&#xE895;" Content="Check updates" Margin="0,0,8,8" IsEnabled="{Binding IsIdle}"
+                                            Click="CheckUpdates_Click"/>
+                                    <Button Style="{StaticResource AccentButton}" Tag="&#xE896;" Content="Update" Margin="0,0,8,8"
+                                            IsEnabled="{Binding IsIdle}" Click="Upgrade_Click"/>
+                                    <Button Tag="&#xE756;" Content="Open SSH" Margin="0,0,8,8" Click="OpenSsh_Click"/>
+                                    <Button Style="{StaticResource IconButton}" Content="&#xE712;" Margin="0,0,0,8"
+                                            ToolTip="Plus d'actions" Click="More_Click"/>
+                                </WrapPanel>
+                            </Grid>
+
+                            <!-- Bandeau d'erreur -->
+                            <Border x:Name="DetailProblem" Style="{StaticResource Card}" Background="#1FF2615C" BorderBrush="#55F2615C"
+                                    Margin="0,0,0,16" Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE7BA;"
+                                               Foreground="{StaticResource WarningBrush}" VerticalAlignment="Top" Margin="0,1,12,0"/>
+                                    <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                        <Button x:Name="ApproveKeyButton" Content="Vérifier et approuver la clé" Click="ApproveKey_Click"
+                                                Visibility="Collapsed"/>
+                                        <Button x:Name="UnlockButton" Content="Déverrouiller" Click="Unlock_Click" Visibility="Collapsed"/>
+                                        <Button x:Name="FixButton" Content="Modifier le serveur" Click="MenuEdit_Click" Visibility="Collapsed"/>
+                                    </WrapPanel>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding StateText}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding StateDetail}" Style="{StaticResource Caption}" FontSize="13" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+
+                            <TextBlock Text="Système" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
+                            <UniformGrid x:Name="DetailInfoGrid" Columns="3" Margin="0,0,-8,0">
+                                <Border Style="{StaticResource InfoTile}">
+                                    <StackPanel>
+                                        <TextBlock Text="Système" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{Binding OsText}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource InfoTile}">
+                                    <StackPanel>
+                                        <TextBlock Text="Noyau" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{Binding KernelText}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource InfoTile}">
+                                    <StackPanel>
+                                        <TextBlock Text="Nom d'hôte" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{Binding HostnameText}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource InfoTile}">
+                                    <StackPanel>
+                                        <TextBlock Text="En service depuis" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{Binding UptimeText}" FontWeight="SemiBold" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource InfoTile}">
+                                    <StackPanel>
+                                        <TextBlock Text="Charge (1, 5, 15 min)" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{Binding LoadText}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource InfoTile}">
+                                    <StackPanel>
+                                        <TextBlock Text="Swap" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{Binding SwapText}" FontWeight="SemiBold" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+
+                            <TextBlock Text="Ressources" Style="{StaticResource SectionHeader}" Margin="2,16,0,8"/>
+                            <Border Style="{StaticResource Card}" Padding="18,14">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto" MinWidth="140"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="28"/>
+                                        <RowDefinition Height="28"/>
+                                        <RowDefinition Height="28"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="CPU" VerticalAlignment="Center"/>
+                                    <ProgressBar Grid.Column="1" Style="{StaticResource Meter}" Height="8"
+                                                 Value="{Binding CpuPercent, Mode=OneWay}" Foreground="{Binding CpuBrush}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding CpuText}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="1" Text="Mémoire" VerticalAlignment="Center"/>
+                                    <ProgressBar Grid.Row="1" Grid.Column="1" Style="{StaticResource Meter}" Height="8"
+                                                 Value="{Binding MemPercent, Mode=OneWay}" Foreground="{Binding MemBrush}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MemText}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="2" Text="Disque /" VerticalAlignment="Center"/>
+                                    <ProgressBar Grid.Row="2" Grid.Column="1" Style="{StaticResource Meter}" Height="8"
+                                                 Value="{Binding DiskPercent, Mode=OneWay}" Foreground="{Binding DiskBrush}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DiskText}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Grid Margin="0,16,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SectionHeader}" Margin="2,0,0,2">
+                                        <Run Text="Mises à jour disponibles"/>
+                                        <Run Text="{Binding UpdatesText, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Normal"/>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding LastCheckText}" Style="{StaticResource Caption}" Margin="2,0,0,8"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Card}" Padding="0">
+                                <Grid>
+                                    <TextBlock x:Name="NoPackagesText" Style="{StaticResource Caption}" FontSize="13" Margin="18,16"
+                                               Text="Aucune mise à jour en attente. « Check updates » rafraîchit la liste depuis les dépôts."/>
+                                    <ItemsControl x:Name="PackagesList" ItemsSource="{Binding Packages}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,0,0,1" Padding="18,9">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="2*"/>
+                                                            <ColumnDefinition Width="3*"/>
+                                                            <ColumnDefinition Width="2*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                            <Border x:Name="secBadge" Style="{StaticResource DangerBadge}" Margin="8,0,0,0" Visibility="Collapsed">
+                                                                <TextBlock Text="sécurité" FontSize="11" Foreground="#FFFF8F8A"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0">
+                                                            <Run Text="{Binding OldVersion, Mode=OneWay}" Foreground="{StaticResource TextTertiaryBrush}"/>
+                                                            <Run Text=" → " Foreground="{StaticResource TextTertiaryBrush}"/>
+                                                            <Run Text="{Binding NewVersion, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                                                        </TextBlock>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Suites}" Style="{StaticResource Caption}"
+                                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </Grid>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSecurity}" Value="True">
+                                                        <Setter TargetName="secBadge" Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
+
+                            <Grid Margin="0,16,0,8">
+                                <TextBlock Text="Journal des opérations" Style="{StaticResource SectionHeader}" Margin="2,0,0,0"/>
+                                <Button Style="{StaticResource SmallButton}" Tag="&#xE74D;" Content="Effacer" HorizontalAlignment="Right"
+                                        Click="ClearLog_Click"/>
+                            </Grid>
+                            <TextBox x:Name="LogBox" Style="{StaticResource ConsoleBox}" Height="340"
+                                     Text="{Binding LogText, Mode=OneWay}"/>
+                        </StackPanel>
+
+                        <!-- ========== Paramètres ========== -->
+                        <StackPanel x:Name="SettingsPage" Visibility="Collapsed" MaxWidth="900" HorizontalAlignment="Left">
+                            <TextBlock Text="Paramètres" Style="{StaticResource PageTitle}"/>
+                            <TextBlock Text="Réglages globaux. Chaque serveur peut remplacer ceux de la supervision, du terminal et des mises à jour dans sa fiche."
+                                       Style="{StaticResource PageSubtitle}"/>
+
+                            <!-- Sécurité -->
+                            <TextBlock Text="Sécurité" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
+                            <ui:SettingCard x:Name="StorageCard" Icon="&#xE72E;" Header="Stockage des mots de passe">
+                                <Border Style="{StaticResource SegmentedHost}">
+                                    <StackPanel x:Name="StorageSegments" Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Tag="Dpapi" Content="Windows"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="MasterPassword" Content="Mot de passe maître"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="PlainText" Content="En clair"/>
+                                    </StackPanel>
+                                </Border>
+                            </ui:SettingCard>
+                            <ui:SettingCard x:Name="MasterPasswordCard" Header="Mot de passe maître" Margin="38,0,0,4"
+                                            Description="Change le mot de passe qui chiffre le coffre.">
+                                <Button Content="Changer…" Click="ChangeMasterPassword_Click"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard x:Name="AutoLockCard" Header="Verrouillage automatique" Margin="38,0,0,4"
+                                            Description="Oublie les mots de passe après une période sans activité. Les serveurs qui en ont besoin passent en « Coffre verrouillé ».">
+                                <Border Style="{StaticResource SegmentedHost}">
+                                    <StackPanel x:Name="AutoLockSegments" Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Tag="0" Content="Jamais"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="15" Content="15 min"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="60" Content="1 h"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="240" Content="4 h"/>
+                                    </StackPanel>
+                                </Border>
+                            </ui:SettingCard>
+
+                            <!-- Terminal -->
+                            <TextBlock Text="Terminal" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE756;" Header="Terminal pour « Open SSH »"
+                                            Description="Intégré : onglets dans l'application, mot de passe saisi automatiquement. Externe : client OpenSSH de Windows.">
+                                <ComboBox x:Name="TerminalCombo" Width="230"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard x:Name="CustomTerminalCard" Header="Commande personnalisée" Margin="38,0,0,4"
+                                            Description="Variables : {host} {port} {user} {name} {keyopt} (option -i de la clé) {ssh} (chemin de ssh.exe).">
+                                <TextBox x:Name="CustomTerminalBox" Width="340" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                         LostFocus="CustomTerminalBox_LostFocus"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE8C8;" Header="Copier le mot de passe pour les terminaux externes"
+                                            Description="ssh.exe ne peut pas recevoir le mot de passe : il est placé dans le presse-papiers (hors historique Win+V) et effacé après 30 s.">
+                                <CheckBox x:Name="CopyPasswordSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE7EF;" Header="Ouvrir le terminal directement en root"
+                                            Description="Lance sudo -i ou su - à l'ouverture (terminal intégré : le mot de passe est saisi pour vous).">
+                                <CheckBox x:Name="RootShellSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+
+                            <!-- Supervision -->
+                            <TextBlock Text="Supervision" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE701;" Header="En ligne / hors ligne et latence"
+                                            Description="Test du port SSH avant chaque relevé.">
+                                <CheckBox x:Name="ShowOnlineSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE9D9;" Header="Ressources"
+                                            Description="Utilisation CPU, mémoire et disque (/), charge système.">
+                                <CheckBox x:Name="ShowResourcesSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE7F8;" Header="Informations système"
+                                            Description="Distribution, noyau, nom d'hôte, durée de fonctionnement.">
+                                <CheckBox x:Name="ShowSystemSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE896;" Header="Mises à jour"
+                                            Description="Nombre de paquets à mettre à jour (dont sécurité) et « redémarrage requis ».">
+                                <CheckBox x:Name="ShowUpdatesSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE72C;" Header="Fréquence des relevés">
+                                <Border Style="{StaticResource SegmentedHost}">
+                                    <StackPanel x:Name="RefreshSegments" Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Tag="30" Content="30 s"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="60" Content="1 min"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="300" Content="5 min"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="900" Content="15 min"/>
+                                    </StackPanel>
+                                </Border>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE895;" Header="Recherche automatique des mises à jour"
+                                            Description="Lance « Check updates » (apt update, en root) en arrière-plan à cet intervalle.">
+                                <Border Style="{StaticResource SegmentedHost}">
+                                    <StackPanel x:Name="AutoCheckSegments" Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Tag="0" Content="Jamais"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="6" Content="6 h"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="12" Content="12 h"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="24" Content="24 h"/>
+                                    </StackPanel>
+                                </Border>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xEA8F;" Header="Notifier les nouvelles mises à jour">
+                                <CheckBox x:Name="NotifyUpdatesSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE7BA;" Header="Notifier quand un serveur ne répond plus">
+                                <CheckBox x:Name="NotifyOfflineSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+
+                            <!-- Mises à jour -->
+                            <TextBlock Text="Mises à jour des serveurs (« Update »)" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE896;" Header="Type de mise à jour"
+                                            Description="upgrade ne supprime jamais de paquet et retient les paquets « held back » (souvent le noyau). full-upgrade les installe, en retirant si nécessaire des paquets.">
+                                <Border Style="{StaticResource SegmentedHost}">
+                                    <StackPanel x:Name="UpgradeSegments" Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Tag="Upgrade" Content="upgrade"/>
+                                        <RadioButton Style="{StaticResource Segment}" Tag="FullUpgrade" Content="full-upgrade"/>
+                                    </StackPanel>
+                                </Border>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE74D;" Header="Nettoyer après la mise à jour"
+                                            Description="apt-get autoremove --purge : retire les dépendances devenues inutiles (anciens noyaux…).">
+                                <CheckBox x:Name="AutoRemoveSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+
+                            <!-- Application -->
+                            <!-- Mises à jour de l'application (GitHub Releases) -->
+                            <TextBlock Text="Mises à jour de l'application" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard x:Name="AppUpdateCard" Icon="&#xE777;" Header="Vibe SSH Monitoring">
+                                <StackPanel Orientation="Horizontal">
+                                    <Control x:Name="AppUpdateSpinner" Style="{StaticResource Spinner}" Margin="0,0,12,0"
+                                             Visibility="Collapsed"/>
+                                    <Button x:Name="AppUpdateCheckButton" Tag="&#xE72C;" Content="Rechercher"
+                                            Click="AppUpdateCheck_Click"/>
+                                    <Button x:Name="AppUpdateInstallButton" Style="{StaticResource AccentButton}" Tag="&#xE777;"
+                                            Content="Redémarrer et mettre à jour" Visibility="Collapsed"
+                                            Click="AppUpdateInstall_Click"/>
+                                </StackPanel>
+                            </ui:SettingCard>
+                            <ui:SettingCard x:Name="AppUpdateAutoCheckCard" Icon="&#xE895;" Header="Rechercher automatiquement"
+                                            Description="Au démarrage puis toutes les 12 h, sur les Releases GitHub du projet. La nouvelle version est téléchargée en arrière-plan.">
+                                <CheckBox x:Name="AppUpdateCheckSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard x:Name="AppUpdateAutoInstallCard" Icon="&#xE896;" Header="Installer automatiquement"
+                                            Description="Une version téléchargée s'installe à la fermeture de l'application (ou au démarrage suivant). Sinon, utilisez « Redémarrer et mettre à jour ».">
+                                <CheckBox x:Name="AppUpdateAutoInstallSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard x:Name="AppUpdatePrereleaseCard" Icon="&#xE9D9;" Header="Inclure les préversions"
+                                            Description="Reçoit aussi les versions bêta, pour tester les nouveautés en avance (moins stables).">
+                                <CheckBox x:Name="AppUpdatePrereleaseSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <Border x:Name="AppUpdateNotesCard" Style="{StaticResource Card}" Background="{StaticResource InsetBrush}"
+                                    Margin="0,0,0,4" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock x:Name="AppUpdateNotesTitle" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                    <TextBlock x:Name="AppUpdateNotesText" Style="{StaticResource Caption}" FontSize="13"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="Application" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE7E8;" Header="Démarrer avec Windows">
+                                <CheckBox x:Name="StartupSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE73F;" Header="Démarrer masqué"
+                                            Description="S'ouvre directement dans la zone de notification ; la supervision tourne en fond.">
+                                <CheckBox x:Name="MinimizedSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE711;" Header="Fermer dans la zone de notification"
+                                            Description="Le bouton ✕ masque la fenêtre au lieu de quitter. Pour quitter, utilisez le menu de l'icône.">
+                                <CheckBox x:Name="CloseToTraySwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+
+                            <TextBlock Text="À propos" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard x:Name="AboutCard" Icon="&#xE946;" Header="Vibe SSH Monitoring">
+                                <Button Tag="&#xE8B7;" Content="Dossier de configuration" Click="OpenConfigFolder_Click"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE765;" Header="Raccourcis clavier"
+                                            Description="Ctrl+1 à Ctrl+3 : changer de page   ·   Ctrl+N : ajouter un serveur   ·   F5 : tout actualiser   ·   Terminal : Ctrl+C/Ctrl+V, clic droit = copier/coller"/>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+
+                <!-- ========== Terminaux (hors défilement : le terminal occupe toute la place) ========== -->
+                <Grid x:Name="TerminalsPage" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,0,0,1" Padding="10,8,10,8">
+                        <DockPanel>
+                            <Button x:Name="NewTerminalButton" DockPanel.Dock="Right" Style="{StaticResource SmallButton}"
+                                    Tag="&#xE710;" Content="Nouveau" Click="NewTerminal_Click" ToolTip="Ouvrir un terminal sur un serveur"/>
+                            <ListBox x:Name="TerminalTabs" Style="{StaticResource TabStrip}" SelectionChanged="TerminalTabs_SelectionChanged">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="7" Height="7" Fill="{Binding StateBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Title}" FontSize="13" VerticalAlignment="Center" MaxWidth="200"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <Button Style="{StaticResource IconButton}" Width="24" Height="24" FontSize="10"
+                                                    Content="&#xE711;" Margin="6,0,0,0" ToolTip="Fermer" Click="CloseTerminal_Click"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+                    <Grid x:Name="TerminalHost" Grid.Row="1"/>
+                    <StackPanel x:Name="NoTerminalState" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE756;" FontSize="40" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource AccentLightBrush}" Margin="0,0,0,16"/>
+                        <TextBlock Text="Aucun terminal ouvert" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        <TextBlock Style="{StaticResource Caption}" FontSize="13" Margin="0,6,0,18" TextAlignment="Center"
+                                   Text="Utilisez « Open SSH » sur un serveur, ou ouvrez-en un ici."/>
+                        <Button Style="{StaticResource AccentButton}" Tag="&#xE710;" Content="Nouveau terminal"
+                                HorizontalAlignment="Center" Click="NewTerminal_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Message éphémère -->
+                <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24"
+                        Background="#FF26262F" BorderBrush="#FF34343F" BorderThickness="1" CornerRadius="8"
+                        Padding="16,10" Opacity="0" IsHitTestVisible="False" MaxWidth="560">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE73E;" Foreground="{StaticResource SuccessBrush}"
+                                   Margin="0,0,10,0"/>
+                        <TextBlock x:Name="ToastText" TextWrapping="Wrap" FontSize="13"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

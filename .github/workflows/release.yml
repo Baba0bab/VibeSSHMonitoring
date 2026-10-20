@@ -1,0 +1,91 @@
+# Release : pousser un tag v1.2.3 (ou v1.3.0-beta.1) construit l'installateur et les paquets de
+# mise à jour (Velopack), puis les publie sur GitHub Releases, où l'application les récupère.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build installer & publish
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Version from tag
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          "VERSION=$version" >> $env:GITHUB_ENV
+          "PRERELEASE=$($version.Contains('-').ToString().ToLower())" >> $env:GITHUB_ENV
+
+      - name: Tests
+        run: dotnet test Tests/VibeSSHMonitoring.Tests.csproj -c Release
+
+      - name: Restore tools (vpk)
+        run: dotnet tool restore
+
+      # Version précédente : permet de générer le paquet delta (mise à jour de quelques Ko).
+      # Échoue sans conséquence pour la toute première release.
+      - name: Download previous release
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $pre = if ($env:PRERELEASE -eq 'true') { @('--pre') } else { @() }
+          dotnet vpk download github --repoUrl $env:REPO_URL --token "${{ github.token }}" --outputDir Releases @pre
+
+      - name: Build installer and update packages
+        shell: pwsh
+        run: ./scripts/pack.ps1 -Version $env:VERSION -OutputDir Releases
+
+      - name: Publish GitHub release
+        shell: pwsh
+        run: |
+          $pre = if ($env:PRERELEASE -eq 'true') { @('--pre') } else { @() }
+          dotnet vpk upload github --repoUrl $env:REPO_URL --token "${{ github.token }}" --outputDir Releases `
+            --publish --tag "${{ github.ref_name }}" --releaseName "Vibe SSH Monitoring $env:VERSION" @pre
+
+      - name: Release notes and checksums
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = Get-ChildItem Releases/VibeSSHMonitoring-win-Setup.exe, Releases/VibeSSHMonitoring-win-Portable.zip
+          $files | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), $_.Name } |
+            Set-Content Releases/SHA256SUMS.txt -Encoding ascii
+          gh release upload "${{ github.ref_name }}" Releases/SHA256SUMS.txt --clobber
+
+          $changes = Get-Content artifacts/release-notes.md -Raw
+          $body = @"
+          ## Installation
+
+          | Fichier / File | |
+          |---|---|
+          | **VibeSSHMonitoring-win-Setup.exe** | Installateur (recommandé), installe pour l'utilisateur courant, sans droits administrateur, avec mises à jour automatiques. / Installer (recommended), per-user, no admin rights, automatic updates. |
+          | VibeSSHMonitoring-win-Portable.zip | Version portable : décompresser et lancer ``VibeSSHMonitoring.exe``. / Portable: extract and run ``VibeSSHMonitoring.exe``. |
+
+          Déjà installé ? L'application se met à jour toute seule. / Already installed? The app updates itself.
+          Empreintes / Checksums: ``SHA256SUMS.txt``.
+
+          ## Changements / Changes
+
+          $changes
+          "@
+          Set-Content release-body.md $body -Encoding utf8
+          gh release edit "${{ github.ref_name }}" --notes-file release-body.md
