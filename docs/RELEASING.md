@@ -65,7 +65,7 @@ gh run watch (gh run list --workflow release.yml --limit 1 --json databaseId --j
 gh release view v1.3.0
 ```
 
-Expected assets: `VibeSSHMonitoring-win-Setup.exe`, `VibeSSHMonitoring-win-Portable.zip`, `VibeSSHMonitoring-1.3.0-full.nupkg`, `VibeSSHMonitoring-1.3.0-delta.nupkg` (missing only for the very first release), `releases.win.json`, `assets.win.json`, `RELEASES`, `SHA256SUMS.txt`. The release must be published (not a draft) and marked pre-release only for suffixed versions. Finally, on a machine with the previous version installed: *Paramètres → Mises à jour de l'application → Rechercher* should find and install it.
+Expected assets: `VibeSSHMonitoring-win-Setup.exe`, `VibeSSHMonitoring-win-Portable.zip`, `VibeSSHMonitoring-1.3.0-full.nupkg`, `VibeSSHMonitoring-1.3.0-delta.nupkg` (missing only for the very first release), `releases.win.json`, `RELEASES`, `SHA256SUMS.txt`. The release must be published (not a draft) and marked pre-release only for suffixed versions. Finally, on a machine with the previous version installed: *Paramètres → Mises à jour de l'application → Rechercher* should find and install it.
 
 ### If something goes wrong
 
@@ -136,7 +136,7 @@ gh run watch (gh run list --workflow release.yml --limit 1 --json databaseId --j
 gh release view v1.3.0
 ```
 
-Fichiers attendus : `VibeSSHMonitoring-win-Setup.exe`, `VibeSSHMonitoring-win-Portable.zip`, `VibeSSHMonitoring-1.3.0-full.nupkg`, `VibeSSHMonitoring-1.3.0-delta.nupkg` (absent seulement pour la toute première version), `releases.win.json`, `assets.win.json`, `RELEASES`, `SHA256SUMS.txt`. La version doit être publiée (pas en brouillon), et marquée préversion uniquement si elle a un suffixe. Enfin, sur une machine où la version précédente est installée : *Paramètres → Mises à jour de l'application → Rechercher* doit la trouver et l'installer.
+Fichiers attendus : `VibeSSHMonitoring-win-Setup.exe`, `VibeSSHMonitoring-win-Portable.zip`, `VibeSSHMonitoring-1.3.0-full.nupkg`, `VibeSSHMonitoring-1.3.0-delta.nupkg` (absent seulement pour la toute première version), `releases.win.json`, `RELEASES`, `SHA256SUMS.txt`. La version doit être publiée (pas en brouillon), et marquée préversion uniquement si elle a un suffixe. Enfin, sur une machine où la version précédente est installée : *Paramètres → Mises à jour de l'application → Rechercher* doit la trouver et l'installer.
 
 ### En cas de problème
 
