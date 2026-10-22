@@ -249,7 +249,14 @@
 
                 <StackPanel>
                     <RadioButton x:Name="NavServers" Style="{StaticResource NavItem}"
-                                 Tag="&#xE977;" Content="{ui:Tr Nav.Servers}" ToolTip="{ui:Tr Nav.ServersTip}" Checked="Nav_Checked" Click="NavServers_Click"/>
+                                 Tag="&#xE977;" ToolTip="{ui:Tr Nav.ServersTip}" Checked="Nav_Checked" Click="NavServers_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{ui:Tr Nav.Servers}" VerticalAlignment="Center"/>
+                            <Border x:Name="ServerCountBadge" Style="{StaticResource Badge}" Margin="10,0,0,0" Visibility="Collapsed">
+                                <TextBlock x:Name="ServerCountText" FontSize="11" Foreground="{StaticResource AccentLightBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
                     <RadioButton x:Name="NavTerminals" Style="{StaticResource NavItem}"
                                  Tag="&#xE756;" ToolTip="{ui:Tr Nav.TerminalsTip}" Checked="Nav_Checked">
                         <StackPanel Orientation="Horizontal">

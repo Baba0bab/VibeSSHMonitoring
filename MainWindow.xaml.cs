@@ -102,6 +102,7 @@ public partial class MainWindow : Window
         SyncSelection();
         SyncSummary();
         SyncVault();
+        SyncServerCount();
         SyncTerminalCount();
         SyncAppUpdate();
 
@@ -266,6 +267,7 @@ public partial class MainWindow : Window
         RebuildTagFilters();
         SyncEmptyState();
         SyncSelection();
+        SyncServerCount();
     }
 
     private void OnServerPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -673,6 +675,13 @@ public partial class MainWindow : Window
         menu.PlacementTarget = sender as UIElement;
         menu.Placement = PlacementMode.Bottom;
         menu.IsOpen = true;
+    }
+
+    private void SyncServerCount()
+    {
+        int count = _app.Servers.Servers.Count;
+        ServerCountBadge.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        ServerCountText.Text = count.ToString();
     }
 
     private void SyncTerminalCount()
