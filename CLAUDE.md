@@ -14,6 +14,7 @@ dotnet build VibeSSHMonitoring.slnx -c Release      # must give 0 warnings
 dotnet test Tests                                    # 26+ tests (vault, parsing, translations, shell scripts via Git's sh)
 dotnet run                                           # real configuration (Properties/launchSettings.json clears the test variables)
 dotnet run --launch-profile Test                     # test mode: %TEMP%\VibeSSHMonitoring.Demo + demo server
+dotnet run --launch-profile Demo                     # README screenshot servers (UI/DemoServers.cs), reset at each launch
 ./scripts/pack.ps1 -Version 1.2.3 -OutputDir $env:TEMP\vsm-pack  # installer + Velopack packages, publishes nothing
 ```
 
@@ -61,6 +62,7 @@ Baked into every installed copy or into users' data:
   `tools/ui-test/Capture-Window.ps1 -Out shot.png` (captures even a hidden window). Desktop screenshots
   (computer use) hide the user's other windows and don't show the app: use these scripts.
   Element names depend on the interface language: set `"Language": "en"` in the test `config.json` for stable names.
+  README screenshots (`docs/screenshots/`): profile `Demo`, then `Capture-Window.ps1`.
   Glyph buttons are named after their character (`[char]0xE712` = "⋯"); modal dialogs built in code (`UI/Dialogs.cs`) are not always exposed to UI Automation.
 - **Installer and updates** (tested end to end on 2026-10-20): `pack.ps1` two versions into the same folder (delta),
   install the first one with `VibeSSHMonitoring-win-Setup.exe --silent` with `VIBESSHMONITORING_HOME` and

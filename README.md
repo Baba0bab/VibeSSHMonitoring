@@ -108,6 +108,7 @@ git clone https://github.com/Baba0bab/VibeSSHMonitoring.git
 cd VibeSSHMonitoring
 dotnet run                          # build and start (Debug), with your real servers
 dotnet run --launch-profile Test    # test mode: separate data and a demo server
+dotnet run --launch-profile Demo    # the sample servers of the screenshots
 dotnet test Tests                   # unit tests
 ```
 
@@ -118,6 +119,8 @@ A copy started with `dotnet run` is not installed: automatic updates are disable
 `dotnet run` always opens your real configuration, even in a terminal where test variables are still set; quit the installed copy first (notification area icon › Quit), otherwise only its window is shown.
 
 **Test mode**: `dotnet run --launch-profile Test` uses a separate configuration and vault (`%TEMP%\VibeSSHMonitoring.Demo`) and adds a demo server that replays an upgrade in a loop. It runs beside the installed copy. To pick the folder, set `VIBESSHMONITORING_HOME` before this command, or before starting the built exe directly.
+
+**Demo**: `dotnet run --launch-profile Demo` opens the four sample servers of the screenshots above (unreachable `192.0.2.x` addresses, English interface) in `%TEMP%\VibeSSHMonitoring.DemoServers`, reset at each launch. It also runs beside the installed copy.
 
 ### Building the installer
 

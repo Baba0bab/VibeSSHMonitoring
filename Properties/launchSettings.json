@@ -12,6 +12,13 @@
       "environmentVariables": {
         "VIBESSHMONITORING_DEMO": "1"
       }
+    },
+    "Demo": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "VIBESSHMONITORING_HOME": "",
+        "VIBESSHMONITORING_DEMO": "servers"
+      }
     }
   }
 }

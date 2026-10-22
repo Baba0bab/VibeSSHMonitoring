@@ -12,8 +12,9 @@ namespace VibeSSHMonitoring;
 public partial class App : Application
 {
 #if DEBUG
-    // The demo mode runs beside an installed copy
-    private static readonly string InstanceName = "VibeSSHMonitoring_SingleInstance" + (UpgradeDemo.Enabled ? "_Demo" : "");
+    // The demo modes run beside an installed copy
+    private static readonly string InstanceName = "VibeSSHMonitoring_SingleInstance"
+        + (UpgradeDemo.Enabled ? "_Demo" : DemoServers.Enabled ? "_DemoServers" : "");
 #else
     private const string InstanceName = "VibeSSHMonitoring_SingleInstance";
 #endif

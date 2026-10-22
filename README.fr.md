@@ -108,6 +108,7 @@ git clone https://github.com/Baba0bab/VibeSSHMonitoring.git
 cd VibeSSHMonitoring
 dotnet run                          # compile et lance (Debug), avec vos vrais serveurs
 dotnet run --launch-profile Test    # mode test : données séparées et un serveur de démonstration
+dotnet run --launch-profile Demo    # les serveurs d'exemple des captures d'écran
 dotnet test Tests                   # tests unitaires
 ```
 
@@ -118,6 +119,8 @@ Une copie lancée avec `dotnet run` n'est pas installée : les mises à jour aut
 `dotnet run` ouvre toujours votre vraie configuration, même dans un terminal où des variables de test sont encore définies ; quittez d'abord la copie installée (icône de la zone de notification › Quitter), sinon seule sa fenêtre s'affiche.
 
 **Mode test** : `dotnet run --launch-profile Test` utilise une configuration et un coffre séparés (`%TEMP%\VibeSSHMonitoring.Demo`) et ajoute un serveur de démonstration qui rejoue une mise à jour en boucle. Il tourne à côté de la copie installée. Pour choisir le dossier, définissez `VIBESSHMONITORING_HOME` avant cette commande, ou avant de lancer directement l'exe compilé.
+
+**Démo** : `dotnet run --launch-profile Demo` ouvre les quatre serveurs d'exemple des captures ci-dessus (adresses `192.0.2.x` injoignables, interface en anglais) dans `%TEMP%\VibeSSHMonitoring.DemoServers`, remis à zéro à chaque lancement. Il tourne lui aussi à côté de la copie installée.
 
 ### Construire l'installateur
 
