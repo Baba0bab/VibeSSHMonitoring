@@ -47,7 +47,7 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          $pre = if ($env:PRERELEASE -eq 'true') { @('--pre') } else { @() }
+          $pre = @(if ($env:PRERELEASE -eq 'true') { '--pre' })   # @() keeps an array: a bare string would splat as characters
           dotnet vpk download github --repoUrl $env:REPO_URL --token "${{ github.token }}" --outputDir Releases @pre
 
       - name: Build installer and update packages
@@ -57,7 +57,7 @@ jobs:
       - name: Publish GitHub release
         shell: pwsh
         run: |
-          $pre = if ($env:PRERELEASE -eq 'true') { @('--pre') } else { @() }
+          $pre = @(if ($env:PRERELEASE -eq 'true') { '--pre' })   # @() keeps an array: a bare string would splat as characters
           dotnet vpk upload github --repoUrl $env:REPO_URL --token "${{ github.token }}" --outputDir Releases `
             --publish --tag "${{ github.ref_name }}" --releaseName "Vibe SSH Monitoring $env:VERSION" @pre
 
