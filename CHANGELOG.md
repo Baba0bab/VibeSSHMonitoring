@@ -4,13 +4,19 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.3-beta.2] - 2026-10-23
+
 ### Added
 - The update list on a server's page now follows an upgrade live: each package shows an icon for waiting, downloading, installing (spinner), updated (check) or failed, with a progress bar above the list. Packages the upgrade adds (new dependencies, a new kernel) appear as they are installed, and the updated packages stay listed until the next check or upgrade.
 - **Settings › Monitoring › User and address on the home page**: shows or hides the `user@address` line under each server's name in the server list (on by default; each server can override it in its own settings).
 - **Middle click on Open SSH** opens the terminal in the background: an external terminal starts minimized and the built-in terminal adds its tab without leaving the current page, so several servers can be opened before starting to work.
 - Turning off **Include pre-releases** while running a beta now offers to go back to the latest stable version (downloaded, then installed like an update). It is optional: keeping the beta is still possible, and the next newer stable version then comes as a normal update.
+- New **Settings › Notification area icon** category: *Close to the notification area* moves there, *Left click hides the window* (on by default) toggles the window with a left click on the icon, and *Status of each server in the menu* (off by default) lists the servers in the icon's right-click menu with a colored dot (green up to date, orange updates available, red unreachable, gray not read yet); a click opens the server's page.
+- The language picker shows a flag next to each language.
+- The number of servers is shown next to **Servers** in the sidebar.
 
 ### Changed
+- On the Servers page, the actions of a server card stay at the bottom of the card, even when a taller card sits beside it.
 - The upgrade runs apt in the C locale so its progress can be read, which means the upgrade log is now always in English.
 
 ## [1.0.3-beta.1] - 2026-10-22
@@ -64,7 +70,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Windows installer (per-user, no admin rights, Start menu and desktop shortcuts, clean uninstall) and portable version.
 - Automatic application updates from GitHub Releases (delta downloads, install on exit or on restart, optional pre-releases).
 
-[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.3-beta.1...HEAD
+[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.3-beta.2...HEAD
+[1.0.3-beta.2]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.3-beta.1...v1.0.3-beta.2
 [1.0.3-beta.1]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.2...v1.0.3-beta.1
 [1.0.2]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.0...v1.0.1
