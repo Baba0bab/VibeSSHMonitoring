@@ -122,6 +122,13 @@ public partial class MainWindow : Window
             ShowPage(index);
     }
 
+    // Already checked while a server's details are shown: Checked does not fire again, so go back to the list here.
+    private void NavServers_Click(object sender, RoutedEventArgs e)
+    {
+        if (_page == 0 && _detail is not null)
+            ShowPage(0);
+    }
+
     private void NavigateTo(int index)
     {
         if (_navItems[index].IsChecked == true)

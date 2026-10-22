@@ -248,7 +248,7 @@
 
                 <StackPanel>
                     <RadioButton x:Name="NavServers" Style="{StaticResource NavItem}"
-                                 Tag="&#xE977;" Content="{ui:Tr Nav.Servers}" ToolTip="{ui:Tr Nav.ServersTip}" Checked="Nav_Checked"/>
+                                 Tag="&#xE977;" Content="{ui:Tr Nav.Servers}" ToolTip="{ui:Tr Nav.ServersTip}" Checked="Nav_Checked" Click="NavServers_Click"/>
                     <RadioButton x:Name="NavTerminals" Style="{StaticResource NavItem}"
                                  Tag="&#xE756;" ToolTip="{ui:Tr Nav.TerminalsTip}" Checked="Nav_Checked">
                         <StackPanel Orientation="Horizontal">
