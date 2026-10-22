@@ -547,9 +547,18 @@ public partial class MainWindow : Window
     private void BulkCheck_Click(object sender, RoutedEventArgs e) =>
         _ = _app.Servers.RunForAllAsync(SelectedServers, vm => _app.Servers.CheckUpdatesAsync(vm));
 
-    private void BulkUpgrade_Click(object sender, RoutedEventArgs e)
+    private void BulkUpgrade_Click(object sender, RoutedEventArgs e) => ConfirmUpgrade(SelectedServers);
+
+    private void CheckAll_Click(object sender, RoutedEventArgs e) => _ = _app.CheckAllAsync();
+
+    // Only the servers with pending updates: the others have nothing to install
+    private void UpgradeAll_Click(object sender, RoutedEventArgs e) =>
+        ConfirmUpgrade(_app.Servers.Servers.Where(s => s.HasUpdates).ToList());
+
+    private void ConfirmUpgrade(IReadOnlyCollection<ServerViewModel> servers)
     {
-        var servers = SelectedServers;
+        if (servers.Count == 0)
+            return;
         if (Dialogs.Confirm(this, Loc.T("BulkUpgrade.ConfirmTitle", servers.Count), Loc.T("BulkUpgrade.ConfirmText"),
                 Loc.T("BulkUpgrade.Button"), detail: string.Join("\n", servers.Select(s => $"• {s.Name} — {s.UpdatesText}"))))
             _ = _app.Servers.RunForAllAsync(servers, vm => _app.Servers.UpgradeAsync(vm));
@@ -695,6 +704,8 @@ public partial class MainWindow : Window
         if (reboot > 0)
             parts.Add(Loc.T("Summary.RebootCount", reboot));
         ServersSubtitle.Text = string.Join(" · ", parts);
+        CheckAllButton.IsEnabled = servers.Any(s => !s.NoApt);
+        UpgradeAllButton.IsEnabled = servers.Any(s => s.HasUpdates);
     }
 
     internal void SyncVault()
