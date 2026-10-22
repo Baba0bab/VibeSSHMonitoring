@@ -7,7 +7,7 @@
   "Action.CheckUpdates": "Check updates",
   "Action.CheckUpdatesTip": "apt update, then the list of packages to upgrade",
   "Action.OpenSsh": "Open SSH",
-  "Action.OpenSshTip": "Open a terminal on this server",
+  "Action.OpenSshTip": "Open a terminal on this server\nMiddle click: open it in the background",
   "Action.Reboot": "Reboot",
   "Action.Update": "Update",
   "Action.UpdateTip": "apt update + upgrade (non-interactive)",

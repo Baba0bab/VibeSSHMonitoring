@@ -473,13 +473,16 @@ public sealed class ServerManager : IDisposable
         return session;
     }
 
-    /// <summary>"Open SSH": built-in or external terminal, depending on the settings.</summary>
-    public async Task OpenSshAsync(ServerViewModel vm)
+    /// <summary>
+    /// "Open SSH": built-in or external terminal, depending on the settings. In the background
+    /// (middle click), the terminal does not take the focus.
+    /// </summary>
+    public async Task OpenSshAsync(ServerViewModel vm, bool background = false)
     {
         var settings = vm.Settings;
         if (settings.Terminal == TerminalMode.Embedded)
         {
-            _app.OpenEmbeddedTerminal(vm.Config);
+            _app.OpenEmbeddedTerminal(vm.Config, background);
             return;
         }
 
@@ -497,7 +500,7 @@ public sealed class ServerManager : IDisposable
         }
         try
         {
-            ExternalTerminal.Launch(vm.Config, settings.Terminal, settings.RootShell, _app.Config.CustomTerminalCommand);
+            ExternalTerminal.Launch(vm.Config, settings.Terminal, settings.RootShell, _app.Config.CustomTerminalCommand, background);
         }
         catch (Exception ex)
         {

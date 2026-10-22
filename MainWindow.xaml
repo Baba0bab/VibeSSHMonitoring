@@ -181,7 +181,8 @@
                                     Margin="0,0,6,6" IsEnabled="{Binding IsIdle}" Click="Upgrade_Click"
                                     ToolTip="{ui:Tr Action.UpdateTip}"/>
                             <Button Style="{StaticResource SmallButton}" Tag="&#xE756;" Content="{ui:Tr Action.OpenSsh}"
-                                    Margin="0,0,6,6" Click="OpenSsh_Click" ToolTip="{ui:Tr Action.OpenSshTip}"/>
+                                    Margin="0,0,6,6" Click="OpenSsh_Click" MouseDown="OpenSsh_MouseDown" MouseUp="OpenSsh_MouseUp"
+                                    ToolTip="{ui:Tr Action.OpenSshTip}"/>
                         </WrapPanel>
                     </DockPanel>
                 </Grid>
@@ -416,7 +417,8 @@
                                             Click="CheckUpdates_Click" ToolTip="{ui:Tr Action.CheckUpdatesTip}"/>
                                     <Button Style="{StaticResource AccentButton}" Tag="&#xE896;" Content="{ui:Tr Action.Update}" Margin="0,0,8,8"
                                             IsEnabled="{Binding IsIdle}" Click="Upgrade_Click"/>
-                                    <Button Tag="&#xE756;" Content="{ui:Tr Action.OpenSsh}" Margin="0,0,8,8" Click="OpenSsh_Click"/>
+                                    <Button Tag="&#xE756;" Content="{ui:Tr Action.OpenSsh}" Margin="0,0,8,8" Click="OpenSsh_Click"
+                                            MouseDown="OpenSsh_MouseDown" MouseUp="OpenSsh_MouseUp" ToolTip="{ui:Tr Action.OpenSshTip}"/>
                                     <Button Style="{StaticResource IconButton}" Content="&#xE712;" Margin="0,0,0,8"
                                             ToolTip="{ui:Tr Common.MoreActions}" Click="More_Click"/>
                                 </WrapPanel>

@@ -305,10 +305,11 @@ public sealed class AppController : IDisposable
         _tray.Dispose();
     }
 
-    public void OpenEmbeddedTerminal(ServerConfig server)
+    public void OpenEmbeddedTerminal(ServerConfig server, bool background = false)
     {
-        ShowWindow();
-        _window?.OpenTerminal(server);
+        if (!background)
+            ShowWindow();
+        _window?.OpenTerminal(server, background);
     }
 
     // ===== Vault =====

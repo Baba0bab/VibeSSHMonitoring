@@ -71,7 +71,12 @@ public static class ExternalTerminal
         return args;
     }
 
-    public static void Launch(ServerConfig server, TerminalMode mode, bool rootShell, string customTemplate)
+    /// <summary>
+    /// With <paramref name="background"/>, the window starts minimized so that it does not take
+    /// the focus: the user can open several before starting to work.
+    /// </summary>
+    public static void Launch(ServerConfig server, TerminalMode mode, bool rootShell, string customTemplate,
+        bool background = false)
     {
         var args = SshArguments(server, rootShell);
         string title = server.DisplayName;
@@ -119,7 +124,8 @@ public static class ExternalTerminal
                     puttyArgs.Add(SshConnector.ExpandPath(server.KeyPath));
                 }
                 puttyArgs.Add($"{server.Username}@{server.Host.Trim()}");
-                psi = new ProcessStartInfo(putty, JoinWindowsArgs(puttyArgs)) { UseShellExecute = false };
+                // WindowStyle only applies through the shell
+                psi = new ProcessStartInfo(putty, JoinWindowsArgs(puttyArgs)) { UseShellExecute = background };
                 break;
             }
             case TerminalMode.Custom:
@@ -145,6 +151,8 @@ public static class ExternalTerminal
                 throw new InvalidOperationException(Loc.T("Terminal.EmbeddedNotExternal"));
         }
 
+        if (background)
+            psi.WindowStyle = ProcessWindowStyle.Minimized;
         Process.Start(psi)?.Dispose();
     }
 

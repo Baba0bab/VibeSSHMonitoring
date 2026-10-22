@@ -8,7 +8,7 @@
   "Action.CheckUpdates.Short": "Prüfen",
   "Action.CheckUpdatesTip": "apt update, dann die Liste der zu aktualisierenden Pakete",
   "Action.OpenSsh": "SSH öffnen",
-  "Action.OpenSshTip": "Ein Terminal auf diesem Server öffnen",
+  "Action.OpenSshTip": "Ein Terminal auf diesem Server öffnen\nMittelklick: im Hintergrund öffnen",
   "Action.Reboot": "Neu starten",
   "Action.Update": "Aktualisieren",
   "Action.UpdateTip": "apt update + upgrade (nicht interaktiv)",

@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Added
 - The update list on a server's page now follows an upgrade live: each package shows an icon for waiting, downloading, installing (spinner), updated (check) or failed, with a progress bar above the list. Packages the upgrade adds (new dependencies, a new kernel) appear as they are installed, and the updated packages stay listed until the next check or upgrade.
 - **Settings › Monitoring › User and address on the home page**: shows or hides the `user@address` line under each server's name in the server list (on by default; each server can override it in its own settings).
+- **Middle click on Open SSH** opens the terminal in the background: an external terminal starts minimized and the built-in terminal adds its tab without leaving the current page, so several servers can be opened before starting to work.
 - Turning off **Include pre-releases** while running a beta now offers to go back to the latest stable version (downloaded, then installed like an update). It is optional: keeping the beta is still possible, and the next newer stable version then comes as a normal update.
 
 ### Changed

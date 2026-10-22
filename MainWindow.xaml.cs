@@ -498,6 +498,30 @@ public partial class MainWindow : Window
             _ = _app.Servers.OpenSshAsync(vm);
     }
 
+    // Middle click: same as "Open SSH", but the terminal opens in the background so the user
+    // can open several before starting to work. Button raises no Click for the middle button,
+    // so the press is tracked and must be released on the same button.
+    private Button? _middlePressed;
+
+    private void OpenSsh_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Middle)
+            _middlePressed = sender as Button;
+    }
+
+    private void OpenSsh_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle)
+            return;
+        bool sameButton = ReferenceEquals(_middlePressed, sender);
+        _middlePressed = null;
+        if (sameButton && ServerOf(sender) is { } vm)
+        {
+            e.Handled = true;
+            _ = _app.Servers.OpenSshAsync(vm, background: true);
+        }
+    }
+
     private void More_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || ServerOf(sender) is not { } vm)
@@ -627,14 +651,17 @@ public partial class MainWindow : Window
 
     // ===== Built-in terminals =====
 
-    public void OpenTerminal(ServerConfig server)
+    /// <summary>With <paramref name="background"/>, the tab is added without leaving the current page.</summary>
+    public void OpenTerminal(ServerConfig server, bool background = false)
     {
         var view = new TerminalView(_app.Servers, server);
         var tab = new TerminalTab(view);
         _terminals.Add(tab);
         TerminalHost.Children.Add(view);
-        TerminalTabs.SelectedItem = tab;
-        NavigateTo(1);
+        if (!background || TerminalTabs.SelectedItem is null)
+            TerminalTabs.SelectedItem = tab;
+        if (!background)
+            NavigateTo(1);
     }
 
     private void TerminalTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
