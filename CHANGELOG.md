@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.3-beta.1] - 2026-10-22
+
+### Added
+- **Check all** and **Update all** buttons on the Servers page: check every server for updates, or update the servers that have pending updates (after the usual confirmation). Each is disabled when there is nothing to do.
+
+### Changed
+- The Servers page summary now has its own line under the title, so the header buttons no longer wrap needlessly.
+- German and Spanish: *Refresh all* is renamed (*Alle neu einlesen*, *Releer todo*) so it is no longer confused with *Update all*.
+
+### Fixed
+- Clicking **Servers** in the sidebar while a server's details are shown now returns to the server list (it did nothing).
+- An action on a server using *su* no longer stays busy forever when the SSH connection drops: it stops and reports the lost connection.
+
 ## [1.0.2] - 2026-10-22
 
 ### Added
@@ -42,7 +55,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Windows installer (per-user, no admin rights, Start menu and desktop shortcuts, clean uninstall) and portable version.
 - Automatic application updates from GitHub Releases (delta downloads, install on exit or on restart, optional pre-releases).
 
-[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.3-beta.1...HEAD
+[1.0.3-beta.1]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.2...v1.0.3-beta.1
 [1.0.2]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Baba0bab/VibeSSHMonitoring/releases/tag/v1.0.0
