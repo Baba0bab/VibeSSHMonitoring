@@ -298,8 +298,9 @@ public class LocalizationTests
     [MemberData(nameof(OtherLanguages))]
     public void Language_HasSameKeysAndPlaceholdersAsEnglish(string code)
     {
-        var english = Loc.Load(Loc.DefaultLanguage);
-        var other = Loc.Load(code);
+        // Short texts are optional: each language gives them only where its full text is long
+        var english = FullTexts(Loc.Load(Loc.DefaultLanguage));
+        var other = FullTexts(Loc.Load(code));
 
         Assert.Empty(english.Keys.Except(other.Keys));
         Assert.Empty(other.Keys.Except(english.Keys));
@@ -308,6 +309,26 @@ public class LocalizationTests
             Assert.True(Placeholders(text).SequenceEqual(Placeholders(other[key])), $"{code}: placeholders of {key}");
             Assert.True(text.Count(c => c == '|') == other[key].Count(c => c == '|'), $"{code}: '|' separators of {key}");
             Assert.False(string.IsNullOrWhiteSpace(other[key]), $"{code}: empty {key}");
+        }
+    }
+
+    private static Dictionary<string, string> FullTexts(Dictionary<string, string> strings) =>
+        strings.Where(s => !s.Key.EndsWith(Loc.ShortSuffix)).ToDictionary();
+
+    public static IEnumerable<object[]> AllLanguages() => Loc.Languages.Select(l => new object[] { l.Code });
+
+    [Theory]
+    [MemberData(nameof(AllLanguages))]
+    public void ShortText_MatchesItsFullText(string code)
+    {
+        var strings = Loc.Load(code);
+        foreach (var (key, text) in strings.Where(s => s.Key.EndsWith(Loc.ShortSuffix)))
+        {
+            string full = key[..^Loc.ShortSuffix.Length];
+            Assert.True(strings.ContainsKey(full), $"{code}: {key} without {full}");
+            Assert.True(Placeholders(text).SequenceEqual(Placeholders(strings[full])), $"{code}: placeholders of {key}");
+            Assert.True(text.Count(c => c == '|') == strings[full].Count(c => c == '|'), $"{code}: '|' separators of {key}");
+            Assert.False(string.IsNullOrWhiteSpace(text), $"{code}: empty {key}");
         }
     }
 
@@ -346,5 +367,22 @@ public class LanguageSettingTests
             Loc.Initialize(Loc.SystemLanguage);
         }
         Assert.Equal(windows, Loc.Language);
+    }
+
+    [Fact]
+    public void Concise_UsesShortTextOnlyWhereTheLanguageHasOne()
+    {
+        try
+        {
+            Loc.Initialize("fr", concise: true);
+            Assert.Equal("Vérifier", Loc.T("Action.CheckUpdates"));
+            Assert.Equal("Mettre à jour", Loc.T("Action.Update"));
+            Loc.Initialize("fr");
+            Assert.Equal("Vérifier les mises à jour", Loc.T("Action.CheckUpdates"));
+        }
+        finally
+        {
+            Loc.Initialize(Loc.SystemLanguage);
+        }
     }
 }

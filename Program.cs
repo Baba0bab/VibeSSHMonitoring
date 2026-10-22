@@ -22,7 +22,7 @@ public static class Program
             .Run();
 
         // Language before any window: the interface reads its texts when it is built
-        Loc.Initialize(config.Language);
+        Loc.Initialize(config.Language, config.ConciseLabels);
 
         var app = new App();
         app.InitializeComponent();

@@ -11,11 +11,14 @@ namespace VibeSSHMonitoring.Core;
 /// User interface translations. Strings live in Localization/{code}.json (embedded resources,
 /// flat "Area.Key" → text). English is the reference: any key missing from another language
 /// falls back to English, and a key missing everywhere shows as the key itself.
+/// A language may also give an optional "Area.Key.Short" text, used instead of "Area.Key" when
+/// concise labels are on (long button labels such as « Vérifier les mises à jour »).
 /// </summary>
 public static class Loc
 {
     public const string SystemLanguage = "system";
     public const string DefaultLanguage = "en";
+    public const string ShortSuffix = ".Short";
 
     /// <summary>Supported languages, with their name in their own language (for the language picker).</summary>
     public static readonly IReadOnlyList<(string Code, string NativeName)> Languages = new[]
@@ -40,6 +43,9 @@ public static class Loc
     /// <summary>Culture used for numbers and dates, matching <see cref="Language"/>.</summary>
     public static CultureInfo Culture { get; private set; } = CultureInfo.GetCultureInfo(DefaultLanguage);
 
+    /// <summary>Concise labels: the "Area.Key.Short" texts replace the full ones where they exist.</summary>
+    public static bool Concise { get; private set; }
+
     /// <summary>Language for a setting value: "system" (or empty) follows the Windows display language.</summary>
     public static string Resolve(string? setting)
     {
@@ -53,9 +59,10 @@ public static class Loc
     /// Loads the language and makes it the current culture of every thread. Call once at startup,
     /// before any window is created: the interface reads its texts when it is built.
     /// </summary>
-    public static void Initialize(string? setting)
+    public static void Initialize(string? setting, bool concise = false)
     {
         Language = Resolve(setting);
+        Concise = concise;
         _fallback = Load(DefaultLanguage);
         _strings = Language == DefaultLanguage ? _fallback : Load(Language);
 
@@ -72,10 +79,12 @@ public static class Loc
     {
         if (_strings is null)
             Initialize(DefaultLanguage);   // tests and tools that never called Initialize
-        if (_strings!.TryGetValue(key, out var text) || _fallback!.TryGetValue(key, out text))
-            return text;
-        return key;
+        // The language's own full text wins over the English short one
+        return Find(_strings!, key) ?? Find(_fallback!, key) ?? key;
     }
+
+    private static string? Find(Dictionary<string, string> strings, string key) =>
+        (Concise && strings.TryGetValue(key + ShortSuffix, out var text)) || strings.TryGetValue(key, out text) ? text : null;
 
     /// <summary>Translated text with {0}, {1}… placeholders, formatted with the current culture.</summary>
     public static string T(string key, params object?[] args) => string.Format(Culture, T(key), args);

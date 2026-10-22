@@ -241,6 +241,8 @@
   "Settings.Change": "Change…",
   "Settings.CloseToTray": "Close to the notification area",
   "Settings.CloseToTrayDesc": "The ✕ button hides the window instead of exiting. To exit, use the icon's menu.",
+  "Settings.Concise": "Concise labels",
+  "Settings.ConciseDesc": "Uses shorter texts for the buttons that this language makes long. The change applies after a restart.",
   "Settings.ConfigFolder": "Configuration folder",
   "Settings.CopyPassword": "Copy the password for external terminals",
   "Settings.CopyPasswordDesc": "ssh.exe cannot receive the password: it is put in the clipboard (outside the Win+V history) and cleared after 30 s.",

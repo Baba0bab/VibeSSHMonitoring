@@ -775,9 +775,19 @@ public partial class MainWindow : Window
                 return;
             config.Language = code;
             config.Save();
-            // The restart is only useful if the displayed language actually changes
-            LanguageRestartButton.Visibility = Loc.Resolve(code) != Loc.Language ? Visibility.Visible : Visibility.Collapsed;
+            UpdateLanguageRestartButton();
         };
+        BindSwitch(ConciseSwitch, config.ConciseLabels, v =>
+        {
+            config.ConciseLabels = v;
+            config.Save();
+            UpdateLanguageRestartButton();
+        });
+
+        // The restart is only useful if the displayed texts actually change
+        void UpdateLanguageRestartButton() =>
+            LanguageRestartButton.Visibility = Loc.Resolve(config.Language) != Loc.Language || config.ConciseLabels != Loc.Concise
+                ? Visibility.Visible : Visibility.Collapsed;
 
         BindSegments(StorageSegments, _app.Vault.Mode.ToString(), tag => _ = ChangeStorageModeAsync(Enum.Parse<StorageMode>(tag)));
         BindSegments(AutoLockSegments, config.AutoLockMinutes.ToString(), tag =>

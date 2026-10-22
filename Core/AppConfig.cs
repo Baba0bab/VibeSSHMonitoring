@@ -20,6 +20,8 @@ public class AppConfig
 
     /// <summary>Interface language: "system" (Windows display language) or a code from <see cref="Loc.Languages"/>.</summary>
     public string Language { get; set; } = Loc.SystemLanguage;
+    /// <summary>Shorter texts for the labels that a language makes long (see <see cref="Loc.Concise"/>).</summary>
+    public bool ConciseLabels { get; set; }
 
     public StorageMode Storage { get; set; } = StorageMode.Dpapi;
     public int AutoLockMinutes { get; set; }               // 0 = never (master password)

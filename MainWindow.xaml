@@ -383,7 +383,7 @@
                                     <Button Tag="&#xE72C;" Content="{ui:Tr Common.Refresh}" Margin="0,0,8,8" IsEnabled="{Binding IsIdle}"
                                             Click="DetailRefresh_Click"/>
                                     <Button Tag="&#xE895;" Content="{ui:Tr Action.CheckUpdates}" Margin="0,0,8,8" IsEnabled="{Binding IsIdle}"
-                                            Click="CheckUpdates_Click"/>
+                                            Click="CheckUpdates_Click" ToolTip="{ui:Tr Action.CheckUpdatesTip}"/>
                                     <Button Style="{StaticResource AccentButton}" Tag="&#xE896;" Content="{ui:Tr Action.Update}" Margin="0,0,8,8"
                                             IsEnabled="{Binding IsIdle}" Click="Upgrade_Click"/>
                                     <Button Tag="&#xE756;" Content="{ui:Tr Action.OpenSsh}" Margin="0,0,8,8" Click="OpenSsh_Click"/>
@@ -554,6 +554,10 @@
                                             Click="LanguageRestart_Click"/>
                                     <ComboBox x:Name="LanguageCombo" Width="230"/>
                                 </StackPanel>
+                            </ui:SettingCard>
+                            <ui:SettingCard Header="{ui:Tr Settings.Concise}" Margin="38,0,0,4"
+                                            Description="{ui:Tr Settings.ConciseDesc}">
+                                <CheckBox x:Name="ConciseSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
 
                             <!-- Security -->
