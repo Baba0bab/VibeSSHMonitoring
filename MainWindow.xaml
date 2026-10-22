@@ -119,47 +119,50 @@
                         <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DiskText}" Style="{StaticResource MeterValue}"/>
                     </Grid>
 
-                    <!-- Updates -->
-                    <WrapPanel Margin="30,10,0,0" Visibility="{Binding ShowUpdates, Converter={StaticResource BoolToVisibility}}">
-                        <Border x:Name="updatesBadge" Style="{StaticResource NeutralBadge}" Margin="0,0,6,4" Padding="8,3"
-                                Visibility="{Binding HasUpdateInfo, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="updatesIcon" Style="{StaticResource Icon}" Text="&#xE896;" FontSize="11"
-                                           Margin="0,0,6,0" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <TextBlock x:Name="updatesText" Text="{Binding UpdatesText}" FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource DangerBadge}" Margin="0,0,6,4" Padding="8,3"
-                                Visibility="{Binding HasSecurityUpdates, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource Icon}" Text="&#xEA18;" FontSize="11" Margin="0,0,6,0"
-                                           Foreground="#FFFF8F8A"/>
-                                <TextBlock FontSize="12" Foreground="#FFFF8F8A">
-                                    <Run Text="{Binding SecurityCount, Mode=OneWay}"/><Run Text="{ui:Tr Card.SecuritySuffix}"/>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource WarningBadge}" Margin="0,0,6,4" Padding="8,3"
-                                Visibility="{Binding RebootRequired, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="11" Margin="0,0,6,0"
-                                           Foreground="{StaticResource WarningBrush}"/>
-                                <TextBlock Text="{ui:Tr Card.RebootRequired}" FontSize="12" Foreground="{StaticResource WarningBrush}"/>
-                            </StackPanel>
-                        </Border>
+                    <!-- Updates, then the running operation / last reading on the same line (wraps when narrow) -->
+                    <WrapPanel Margin="30,10,0,0">
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding ShowUpdates, Converter={StaticResource BoolToVisibility}}">
+                            <Border x:Name="updatesBadge" Style="{StaticResource NeutralBadge}" Margin="0,0,6,4" Padding="8,3"
+                                    Visibility="{Binding HasUpdateInfo, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="updatesIcon" Style="{StaticResource Icon}" Text="&#xE896;" FontSize="11"
+                                               Margin="0,0,6,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock x:Name="updatesText" Text="{Binding UpdatesText}" FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource DangerBadge}" Margin="0,0,6,4" Padding="8,3"
+                                    Visibility="{Binding HasSecurityUpdates, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xEA18;" FontSize="11" Margin="0,0,6,0"
+                                               Foreground="#FFFF8F8A"/>
+                                    <TextBlock FontSize="12" Foreground="#FFFF8F8A">
+                                        <Run Text="{Binding SecurityCount, Mode=OneWay}"/><Run Text="{ui:Tr Card.SecuritySuffix}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource WarningBadge}" Margin="0,0,6,4" Padding="8,3"
+                                    Visibility="{Binding RebootRequired, Converter={StaticResource BoolToVisibility}}"
+                                    ToolTip="{Binding RebootTip}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="11" Margin="0,0,6,0"
+                                               Foreground="{StaticResource WarningBrush}"/>
+                                    <TextBlock Text="{ui:Tr Card.RebootRequired}" FontSize="12" Foreground="{StaticResource WarningBrush}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="2,0,0,4" VerticalAlignment="Center">
+                            <Control Style="{StaticResource Spinner}" Width="12" Height="12" Margin="0,0,8,0"
+                                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+                            <TextBlock Text="{Binding StatusLine}" FontSize="11" Foreground="{StaticResource TextTertiaryBrush}"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="300" ToolTip="{Binding StateDetail}"/>
+                        </StackPanel>
                     </WrapPanel>
 
-                    <!-- Running operation / last reading -->
-                    <StackPanel Orientation="Horizontal" Margin="30,6,0,0">
-                        <Control Style="{StaticResource Spinner}" Width="12" Height="12" Margin="0,0,8,0"
-                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
-                        <TextBlock Text="{Binding StatusLine}" FontSize="11" Foreground="{StaticResource TextTertiaryBrush}"
-                                   TextTrimming="CharacterEllipsis" MaxWidth="300" ToolTip="{Binding StateDetail}"/>
-                    </StackPanel>
-
                     <!-- Actions: wrap when the card is narrow -->
-                    <DockPanel Margin="0,12,0,0" LastChildFill="True">
+                    <DockPanel Margin="0,8,0,0" LastChildFill="True">
                         <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="32" Height="30" Content="&#xE712;"
                                 FontSize="14" VerticalAlignment="Top" ToolTip="{ui:Tr Common.MoreActions}" Click="More_Click"/>
                         <WrapPanel>

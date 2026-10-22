@@ -134,6 +134,8 @@ public class ParserTests
             "mem_SwapFree=0",
             "disk=80000000 20000000",
             "reboot=1",
+            "rebootpkg=linux-image-6.1.0-21-amd64",
+            "rebootpkg=libc6",
             "apt=1",
             "pkg=openssl/bookworm-security 3.0.13-1~deb12u1 amd64 [upgradable from: 3.0.11-1~deb12u2]",
             "pkg=curl/stable 7.88.1-10+deb12u5 amd64 [upgradable from: 7.88.1-10+deb12u4]");
@@ -147,6 +149,7 @@ public class ParserTests
         Assert.Equal(30, r.CpuPercent!.Value, 1);
         Assert.Equal(8000000, r.MemTotalKb);
         Assert.True(r.RebootRequired);
+        Assert.Equal(["linux-image-6.1.0-21-amd64", "libc6"], r.RebootPackages);
         Assert.Equal(2, r.Packages!.Count);
         Assert.Single(r.Packages, p => p.IsSecurity);
     }

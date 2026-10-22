@@ -221,6 +221,26 @@ public sealed class ServerViewModel : ObservableObject
 
     public bool RebootRequired => _probe?.RebootRequired == true;
 
+    /// <summary>Why a reboot is required: the marker file, the packages that created it, the running kernel.</summary>
+    public string RebootTip
+    {
+        get
+        {
+            var lines = new List<string> { Loc.T("Card.RebootTip") };
+            if (_probe?.RebootPackages is { Count: > 0 } packages)
+            {
+                const int shown = 8;
+                string list = string.Join(", ", packages.Take(shown));
+                if (packages.Count > shown)
+                    list += " " + Loc.T("Card.RebootTipMore", packages.Count - shown);
+                lines.Add(Loc.T("Card.RebootTipPackages", list));
+            }
+            if (_probe?.Kernel is { } kernel)
+                lines.Add(Loc.T("Card.RebootTipKernel", kernel));
+            return string.Join("\n\n", lines);
+        }
+    }
+
     public int? UpdateCount => _probe?.Packages?.Count;
     public int SecurityCount => _probe?.Packages?.Count(p => p.IsSecurity) ?? 0;
     public bool HasUpdates => UpdateCount > 0;

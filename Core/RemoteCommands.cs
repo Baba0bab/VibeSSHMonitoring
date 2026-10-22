@@ -25,6 +25,8 @@ public sealed class ProbeResult
     public long? DiskTotalKb { get; set; }
     public long? DiskUsedKb { get; set; }
     public bool RebootRequired { get; set; }
+    /// <summary>Packages that asked for the reboot (/var/run/reboot-required.pkgs), possibly empty.</summary>
+    public List<string> RebootPackages { get; } = new();
     public bool HasApt { get; set; }
     public List<PackageUpdate>? Packages { get; set; }
 }
@@ -55,7 +57,10 @@ public static partial class RemoteCommands
             sb.Append("awk '/^(MemTotal|MemAvailable|MemFree|Buffers|Cached|SwapTotal|SwapFree):/ {sub(\":\",\"\",$1); print \"mem_\" $1 \"=\" $2}' /proc/meminfo\n");
             sb.Append("df -P -k / 2>/dev/null | awk 'NR==2 {print \"disk=\" $2 \" \" $3}'\n");
         }
-        sb.Append("[ -f /var/run/reboot-required ] && echo reboot=1 || echo reboot=0\n");
+        // Debian / Ubuntu: the file is created by package hooks (kernel, libc, systemd…), .pkgs lists them
+        sb.Append("if [ -f /var/run/reboot-required ]; then echo reboot=1; ")
+          .Append("sort -u /var/run/reboot-required.pkgs 2>/dev/null | head -n 50 | sed 's/^/rebootpkg=/'; ")
+          .Append("else echo reboot=0; fi\n");
         sb.Append("command -v apt-get >/dev/null 2>&1 && echo apt=1 || echo apt=0\n");
         if (updates)
             sb.Append("apt list --upgradable 2>/dev/null | grep -F '[upgradable from' | sed 's/^/pkg=/'\n");
@@ -147,6 +152,9 @@ public static partial class RemoteCommands
                     }
                     break;
                 case "reboot": result.RebootRequired = value == "1"; break;
+                case "rebootpkg":
+                    if (value.Length > 0) result.RebootPackages.Add(value);
+                    break;
                 case "apt": result.HasApt = value == "1"; break;
                 case "pkg":
                     if (ParsePackage(value) is { } package)
