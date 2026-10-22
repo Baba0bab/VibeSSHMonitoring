@@ -622,7 +622,17 @@
                                     <Button x:Name="LanguageRestartButton" Style="{StaticResource AccentButton}" Tag="&#xE72C;"
                                             Content="{ui:Tr Settings.LanguageRestart}" Margin="0,0,12,0" Visibility="Collapsed"
                                             Click="LanguageRestart_Click"/>
-                                    <ComboBox x:Name="LanguageCombo" Width="230"/>
+                                    <ComboBox x:Name="LanguageCombo" Width="230">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Image Source="{Binding Flag}" Width="20" Height="15" Margin="0,0,10,0"
+                                                           VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                 </StackPanel>
                             </ui:SettingCard>
                             <ui:SettingCard Header="{ui:Tr Settings.Concise}" Margin="38,0,0,4"

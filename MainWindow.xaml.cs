@@ -793,16 +793,17 @@ public partial class MainWindow : Window
         var config = _app.Config;
         var d = config.Defaults;
 
-        // Language: "System" first, then each language in its own name
-        string systemLanguage = Loc.Languages.First(l => l.Code == Loc.Resolve(Loc.SystemLanguage)).NativeName;
-        LanguageCombo.Items.Add(new ComboBoxItem { Content = Loc.T("Settings.LanguageSystem", systemLanguage), Tag = Loc.SystemLanguage });
+        // Language: "System" first (with the flag of Windows' language), then each language in its own name
+        var systemLanguage = Loc.Languages.First(l => l.Code == Loc.Resolve(Loc.SystemLanguage));
+        LanguageCombo.Items.Add(new LanguageChoice(Loc.SystemLanguage,
+            Loc.T("Settings.LanguageSystem", systemLanguage.NativeName), Flags.For(systemLanguage.Code)));
         foreach (var (code, name) in Loc.Languages)
-            LanguageCombo.Items.Add(new ComboBoxItem { Content = name, Tag = code });
-        LanguageCombo.SelectedItem = LanguageCombo.Items.OfType<ComboBoxItem>()
-            .FirstOrDefault(i => (string)i.Tag == config.Language) ?? LanguageCombo.Items[0];
+            LanguageCombo.Items.Add(new LanguageChoice(code, name, Flags.For(code)));
+        LanguageCombo.SelectedItem = LanguageCombo.Items.OfType<LanguageChoice>()
+            .FirstOrDefault(c => c.Code == config.Language) ?? LanguageCombo.Items[0];
         LanguageCombo.SelectionChanged += (_, _) =>
         {
-            if (_updatingUi || LanguageCombo.SelectedItem is not ComboBoxItem { Tag: string code })
+            if (_updatingUi || LanguageCombo.SelectedItem is not LanguageChoice { Code: var code })
                 return;
             config.Language = code;
             config.Save();
