@@ -280,6 +280,8 @@
   "Settings.ServerUpdates": "Server-Updates („Update“)",
   "Settings.Shortcuts": "Tastenkombinationen",
   "Settings.ShortcutsDesc": "Strg+1 bis Strg+3: Seite wechseln   ·   Strg+N: Server hinzufügen   ·   F5: alle neu einlesen   ·   Terminal: Strg+C/Strg+V, Rechtsklick = kopieren/einfügen",
+  "Settings.ShowEndpoint": "Benutzer und Adresse auf der Startseite",
+  "Settings.ShowEndpointDesc": "Zeigt benutzer@adresse unter dem Namen jedes Servers in der Serverliste.",
   "Settings.ShowOnline": "Online / offline und Latenz",
   "Settings.ShowOnlineDesc": "Test des SSH-Ports vor jedem Auslesen.",
   "Settings.ShowResourcesDesc": "Auslastung von CPU, Arbeitsspeicher und Datenträger (/), Systemlast.",

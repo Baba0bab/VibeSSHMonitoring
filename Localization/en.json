@@ -275,6 +275,8 @@
   "Settings.ServerUpdates": "Server updates (\"Update\")",
   "Settings.Shortcuts": "Keyboard shortcuts",
   "Settings.ShortcutsDesc": "Ctrl+1 to Ctrl+3: switch page   ·   Ctrl+N: add a server   ·   F5: refresh all   ·   Terminal: Ctrl+C/Ctrl+V, right click = copy/paste",
+  "Settings.ShowEndpoint": "User and address on the home page",
+  "Settings.ShowEndpointDesc": "Shows user@address under each server's name in the server list.",
   "Settings.ShowOnline": "Online / offline and latency",
   "Settings.ShowOnlineDesc": "SSH port test before each reading.",
   "Settings.ShowResourcesDesc": "CPU, memory and disk (/) usage, system load.",

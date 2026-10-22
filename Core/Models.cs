@@ -31,6 +31,7 @@ public enum UpgradeKind { Upgrade, FullUpgrade }
 public class ServerSettings
 {
     public bool? ShowOnline { get; set; }
+    public bool? ShowEndpoint { get; set; }      // user@host under the name on the home cards
     public bool? ShowResources { get; set; }
     public bool? ShowSystem { get; set; }
     public bool? ShowUpdates { get; set; }
@@ -47,6 +48,7 @@ public class ServerSettings
     public static ServerSettings CreateDefaults() => new()
     {
         ShowOnline = true,
+        ShowEndpoint = true,
         ShowResources = true,
         ShowSystem = true,
         ShowUpdates = true,
@@ -65,6 +67,7 @@ public class ServerSettings
     public void FillMissing(ServerSettings defaults)
     {
         ShowOnline ??= defaults.ShowOnline;
+        ShowEndpoint ??= defaults.ShowEndpoint;
         ShowResources ??= defaults.ShowResources;
         ShowSystem ??= defaults.ShowSystem;
         ShowUpdates ??= defaults.ShowUpdates;
@@ -80,7 +83,7 @@ public class ServerSettings
     }
 
     public bool HasOverrides =>
-        ShowOnline.HasValue || ShowResources.HasValue || ShowSystem.HasValue || ShowUpdates.HasValue ||
+        ShowOnline.HasValue || ShowEndpoint.HasValue || ShowResources.HasValue || ShowSystem.HasValue || ShowUpdates.HasValue ||
         RefreshSeconds.HasValue || AutoCheckHours.HasValue || NotifyUpdates.HasValue || NotifyOffline.HasValue ||
         Terminal.HasValue || RootShell.HasValue || Upgrade.HasValue || AutoRemove.HasValue ||
         OpenDetailsOnUpgrade.HasValue;
@@ -91,7 +94,7 @@ public sealed record EffectiveSettings(
     bool ShowOnline, bool ShowResources, bool ShowSystem, bool ShowUpdates,
     int RefreshSeconds, int AutoCheckHours, bool NotifyUpdates, bool NotifyOffline,
     TerminalMode Terminal, bool RootShell, UpgradeKind Upgrade, bool AutoRemove,
-    bool OpenDetailsOnUpgrade)
+    bool OpenDetailsOnUpgrade, bool ShowEndpoint)
 {
     public static EffectiveSettings Resolve(ServerSettings global, ServerSettings? server)
     {
@@ -109,7 +112,8 @@ public sealed record EffectiveSettings(
             s.RootShell ?? global.RootShell ?? false,
             s.Upgrade ?? global.Upgrade ?? UpgradeKind.Upgrade,
             s.AutoRemove ?? global.AutoRemove ?? false,
-            s.OpenDetailsOnUpgrade ?? global.OpenDetailsOnUpgrade ?? true);
+            s.OpenDetailsOnUpgrade ?? global.OpenDetailsOnUpgrade ?? true,
+            s.ShowEndpoint ?? global.ShowEndpoint ?? true);
     }
 }
 
@@ -150,7 +154,7 @@ public class ServerConfig
         copy.Tags = new List<string>(Tags);
         copy.Overrides = new ServerSettings
         {
-            ShowOnline = Overrides.ShowOnline, ShowResources = Overrides.ShowResources,
+            ShowOnline = Overrides.ShowOnline, ShowEndpoint = Overrides.ShowEndpoint, ShowResources = Overrides.ShowResources,
             ShowSystem = Overrides.ShowSystem, ShowUpdates = Overrides.ShowUpdates,
             RefreshSeconds = Overrides.RefreshSeconds, AutoCheckHours = Overrides.AutoCheckHours,
             NotifyUpdates = Overrides.NotifyUpdates, NotifyOffline = Overrides.NotifyOffline,

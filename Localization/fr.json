@@ -280,6 +280,8 @@
   "Settings.ServerUpdates": "Mises à jour des serveurs (« Update »)",
   "Settings.Shortcuts": "Raccourcis clavier",
   "Settings.ShortcutsDesc": "Ctrl+1 à Ctrl+3 : changer de page   ·   Ctrl+N : ajouter un serveur   ·   F5 : tout actualiser   ·   Terminal : Ctrl+C/Ctrl+V, clic droit = copier/coller",
+  "Settings.ShowEndpoint": "Utilisateur et adresse à l'accueil",
+  "Settings.ShowEndpointDesc": "Affiche utilisateur@adresse sous le nom de chaque serveur dans la liste des serveurs.",
   "Settings.ShowOnline": "En ligne / hors ligne et latence",
   "Settings.ShowOnlineDesc": "Test du port SSH avant chaque relevé.",
   "Settings.ShowResourcesDesc": "Utilisation CPU, mémoire et disque (/), charge système.",

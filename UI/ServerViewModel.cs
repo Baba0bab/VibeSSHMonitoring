@@ -99,6 +99,7 @@ public sealed class ServerViewModel : ObservableObject
     };
 
     public bool ShowOnline => _settings.ShowOnline;
+    public bool ShowEndpoint => _settings.ShowEndpoint;
     public bool ShowResources => _settings.ShowResources && (_probe?.CpuPercent is not null || _probe?.MemTotalKb is not null);
     public bool ShowSystem => _settings.ShowSystem && _probe?.Os is not null;
     public bool ShowUpdates => _settings.ShowUpdates;

@@ -139,6 +139,7 @@ public partial class ServerEditWindow : Window
         var d = _app.Config.Defaults;
         var onOff = new (string, object)[] { (Loc.T("Common.On"), true), (Loc.T("Common.Off"), false) };
 
+        AddBool("", Loc.T("Settings.ShowEndpoint"), d.ShowEndpoint, current.ShowEndpoint, (o, v) => o.ShowEndpoint = (bool?)v);
         AddBool("", Loc.T("Settings.ShowOnline"), d.ShowOnline, current.ShowOnline, (o, v) => o.ShowOnline = (bool?)v);
         AddBool("", Loc.T("Editor.OverrideResources"), d.ShowResources, current.ShowResources, (o, v) => o.ShowResources = (bool?)v);
         AddBool("", Loc.T("Settings.ShowSystem"), d.ShowSystem, current.ShowSystem, (o, v) => o.ShowSystem = (bool?)v);

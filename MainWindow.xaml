@@ -58,7 +58,8 @@
                                            TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
                             <TextBlock Text="{Binding Endpoint}" Style="{StaticResource Caption}" Margin="17,2,0,0"
-                                       TextTrimming="CharacterEllipsis"/>
+                                       TextTrimming="CharacterEllipsis"
+                                       Visibility="{Binding ShowEndpoint, Converter={StaticResource BoolToVisibility}}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2" HorizontalAlignment="Right">
                             <TextBlock Text="{Binding StateText}" FontSize="12" Foreground="{Binding StateBrush}"
@@ -671,6 +672,10 @@
 
                             <!-- Monitoring -->
                             <TextBlock Text="{ui:Tr Settings.Monitoring}" Style="{StaticResource SectionHeader}"/>
+                            <ui:SettingCard Icon="&#xE77B;" Header="{ui:Tr Settings.ShowEndpoint}"
+                                            Description="{ui:Tr Settings.ShowEndpointDesc}">
+                                <CheckBox x:Name="ShowEndpointSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
                             <ui:SettingCard Icon="&#xE701;" Header="{ui:Tr Settings.ShowOnline}"
                                             Description="{ui:Tr Settings.ShowOnlineDesc}">
                                 <CheckBox x:Name="ShowOnlineSwitch" Style="{StaticResource Switch}"/>

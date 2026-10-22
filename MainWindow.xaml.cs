@@ -835,6 +835,7 @@ public partial class MainWindow : Window
 
         BindSwitch(CopyPasswordSwitch, config.CopyPasswordForExternal, v => { config.CopyPasswordForExternal = v; config.Save(); });
         BindSwitch(RootShellSwitch, d.RootShell == true, v => { d.RootShell = v; SaveDefaults(); });
+        BindSwitch(ShowEndpointSwitch, d.ShowEndpoint == true, v => { d.ShowEndpoint = v; SaveDefaults(); });
         BindSwitch(ShowOnlineSwitch, d.ShowOnline == true, v => { d.ShowOnline = v; SaveDefaults(); });
         BindSwitch(ShowResourcesSwitch, d.ShowResources == true, v => { d.ShowResources = v; SaveDefaults(); });
         BindSwitch(ShowSystemSwitch, d.ShowSystem == true, v => { d.ShowSystem = v; SaveDefaults(); });
