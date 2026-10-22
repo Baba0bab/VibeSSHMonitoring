@@ -355,6 +355,9 @@ public static partial class RemoteExec
         var modes = new Dictionary<TerminalModes, uint> { [TerminalModes.ECHO] = 0 };
         using var shell = client.CreateShellStream("dumb", 220, 50, 0, 0, 64 * 1024, modes);
         using var reg = ct.Register(() => { try { shell.Dispose(); } catch { } });
+        bool closed = false;
+        shell.Closed += (_, _) => closed = true;
+        shell.ErrorOccurred += (_, _) => closed = true;
         shell.Write(line);
         shell.Flush();
 
@@ -379,9 +382,15 @@ public static partial class RemoteExec
                 int read;
                 try
                 {
-                    if (!passwordSent && !shell.DataAvailable)
+                    // Never block in Read: a session that drops (network, connection reset) does not
+                    // wake it up, and the action would stay busy forever. Read before DataAvailable,
+                    // so that the last data sent before the close is not lost.
+                    bool ended = Volatile.Read(ref closed) || !client.IsConnected;
+                    if (!shell.DataAvailable)
                     {
-                        Thread.Sleep(50);   // bounded wait for the prompt, without blocking on Read
+                        if (ended)
+                            break;
+                        Thread.Sleep(50);
                         continue;
                     }
                     read = shell.Read(buffer, 0, buffer.Length);
@@ -444,6 +453,9 @@ public static partial class RemoteExec
                 throw new SshOperationException(SshErrorKind.ElevationFailed, Loc.T("Ssh.SuWrongPassword"));
             if (!passwordSent)
                 throw new SshOperationException(SshErrorKind.ElevationFailed, Loc.T("Ssh.SuNoPrompt", preamble.ToString().Trim()));
+            if (!client.IsConnected)
+                throw new SshOperationException(SshErrorKind.Unreachable,
+                    Loc.T("Ssh.ConnectionLost", Loc.T("Ssh.Interrupted")));
             throw new SshOperationException(SshErrorKind.Other, Loc.T("Ssh.Interrupted"));
         }
         string result = text[..match.Index].TrimStart('\n');
