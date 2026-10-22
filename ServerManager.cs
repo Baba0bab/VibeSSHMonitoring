@@ -199,6 +199,18 @@ public sealed class ServerManager : IDisposable
         var config = vm.Config;
         var ct = _shutdown.Token;
 
+#if DEBUG
+        if (DemoServers.ProbeFor(config) is var (demoProbe, demoLatency))
+        {
+            await Task.Delay(300, ct);
+            vm.LatencyMs = settings.ShowOnline ? demoLatency : null;
+            vm.Probe = demoProbe;
+            vm.State = ServerState.Online;
+            vm.StateDetail = null;
+            return;
+        }
+#endif
+
         if (settings.ShowOnline)
         {
             double? latency = await Task.Run(() => PingAsync(config.Host.Trim(), config.Port, ct), ct);
