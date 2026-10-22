@@ -249,6 +249,24 @@ public sealed class AppController : IDisposable
         Config.AppUpdatePrerelease = include;
         Config.Save();
         Updater.SetIncludePrerelease(include);
+        if (!include && Updater.IsPrerelease)
+            _ = OfferStableDowngradeAsync();
+    }
+
+    /// <summary>
+    /// Pre-releases turned off while running one: offers to go back to the latest stable version
+    /// (optional: otherwise the next newer stable version comes as a normal update).
+    /// </summary>
+    private async Task OfferStableDowngradeAsync()
+    {
+        string? version = await Updater.FindStableDowngradeAsync();
+        if (version is null || Config.AppUpdatePrerelease)   // none, or turned back on meanwhile
+            return;
+        if (!Dialogs.Confirm(_window, Loc.T("AppUpdate.DowngradeTitle", version),
+                Loc.T("AppUpdate.DowngradeText", Updater.CurrentVersion, version),
+                Loc.T("AppUpdate.DowngradeButton", version), cancelText: Loc.T("AppUpdate.DowngradeKeep")))
+            return;
+        await Updater.DowngradeAsync();
     }
 
     private void OnAppUpdateChanged()

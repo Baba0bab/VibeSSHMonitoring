@@ -33,6 +33,7 @@ public sealed class AppUpdater
     private readonly SemaphoreSlim _gate = new(1, 1);
     private UpdateManager _manager;
     private UpdateInfo? _pending;
+    private (UpdateManager Manager, UpdateInfo Update)? _downgrade;
     private bool _includePrerelease;
 
     public AppUpdateState State { get; private set; }
@@ -62,17 +63,20 @@ public sealed class AppUpdater
     public bool IsInstalled => _manager.IsInstalled;
     public bool IsPortable => _manager.IsInstalled && _manager.IsPortable;
 
+    /// <summary>The running version is a pre-release (beta).</summary>
+    public bool IsPrerelease => _manager.CurrentVersion?.IsPrerelease == true;
+
     public string CurrentVersion =>
         _manager.CurrentVersion?.ToString()
         ?? typeof(AppUpdater).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
         ?? "?";
 
-    private static UpdateManager CreateManager(bool includePrerelease)
+    private static UpdateManager CreateManager(bool includePrerelease, bool allowDowngrade = false)
     {
         IUpdateSource source = Environment.GetEnvironmentVariable(SourceOverrideVariable) is { Length: > 0 } custom
             ? new SimpleFileSource(new DirectoryInfo(custom))
             : new GithubSource(RepositoryUrl, accessToken: null, prerelease: includePrerelease);
-        return new UpdateManager(source);
+        return new UpdateManager(source, new UpdateOptions { AllowVersionDowngrade = allowDowngrade });
     }
 
     /// <summary>Switches the channel (stable only, or with pre-releases); used by the next check.</summary>
@@ -86,10 +90,47 @@ public sealed class AppUpdater
             SetState(AppUpdateState.Idle);
     }
 
-    /// <summary>Checks for a new version and downloads it if there is one.</summary>
-    public async Task CheckAndDownloadAsync(CancellationToken ct = default)
+    /// <summary>
+    /// Looks for the latest stable version when it is older than the running pre-release (a newer
+    /// one comes through the normal check). Returns its version, or null; nothing is downloaded.
+    /// </summary>
+    public async Task<string?> FindStableDowngradeAsync(CancellationToken ct = default)
     {
-        if (!_manager.IsInstalled || State is AppUpdateState.Ready)
+        _downgrade = null;
+        if (!IsInstalled || !IsPrerelease)
+            return null;
+        try
+        {
+            var manager = CreateManager(includePrerelease: false, allowDowngrade: true);
+            if (await manager.CheckForUpdatesAsync().WaitAsync(ct) is not { IsDowngrade: true } update)
+                return null;
+            _downgrade = (manager, update);
+            return update.TargetFullRelease.Version.ToString();
+        }
+        catch (Exception)
+        {
+            return null;   // only an offer: the next normal check reports the errors
+        }
+    }
+
+    /// <summary>
+    /// Downloads the stable version found by <see cref="FindStableDowngradeAsync"/>, in place of a
+    /// pending update; it is then installed like any update.
+    /// </summary>
+    public Task DowngradeAsync(CancellationToken ct = default) =>
+        _downgrade is var (manager, update)
+            ? RunAsync(manager, () => Task.FromResult<UpdateInfo?>(update), ct)
+            : Task.CompletedTask;
+
+    /// <summary>Checks for a new version and downloads it if there is one.</summary>
+    public Task CheckAndDownloadAsync(CancellationToken ct = default) =>
+        State is AppUpdateState.Ready
+            ? Task.CompletedTask
+            : RunAsync(_manager, () => _manager.CheckForUpdatesAsync(), ct);
+
+    private async Task RunAsync(UpdateManager manager, Func<Task<UpdateInfo?>> check, CancellationToken ct)
+    {
+        if (!manager.IsInstalled)
             return;
         if (!await _gate.WaitAsync(0, ct))
             return;   // a check is already running
@@ -97,7 +138,7 @@ public sealed class AppUpdater
         {
             Error = null;
             SetState(AppUpdateState.Checking);
-            var update = await _manager.CheckForUpdatesAsync().WaitAsync(ct);
+            var update = await check().WaitAsync(ct);
             LastCheckUtc = DateTime.UtcNow;
             if (update is null)
             {
@@ -109,7 +150,7 @@ public sealed class AppUpdater
             ReleaseNotes = update.TargetFullRelease.NotesMarkdown;
             Progress = 0;
             SetState(AppUpdateState.Downloading);
-            await _manager.DownloadUpdatesAsync(update, percent =>
+            await manager.DownloadUpdatesAsync(update, percent =>
             {
                 Progress = percent;
                 StateChanged?.Invoke();
