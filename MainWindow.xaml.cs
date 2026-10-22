@@ -395,7 +395,7 @@ public partial class MainWindow : Window
 
     // ===== Details =====
 
-    private void ShowDetail(ServerViewModel vm)
+    internal void ShowDetail(ServerViewModel vm)
     {
         SetDetail(vm);
         if (_page != 0)
@@ -857,6 +857,8 @@ public partial class MainWindow : Window
                 StartupManager.SetEnabled(true, v);
         });
         BindSwitch(CloseToTraySwitch, config.CloseToTray, v => { config.CloseToTray = v; config.Save(); });
+        BindSwitch(TrayClickHidesSwitch, config.TrayClickHides, v => { config.TrayClickHides = v; config.Save(); });
+        BindSwitch(TrayServerStatusSwitch, config.TrayServerStatus, v => { config.TrayServerStatus = v; config.Save(); });
 
         BindSwitch(AppUpdateCheckSwitch, config.AppUpdateCheck, v => { config.AppUpdateCheck = v; config.Save(); });
         BindSwitch(AppUpdateAutoInstallSwitch, config.AppUpdateAutoInstall, v =>

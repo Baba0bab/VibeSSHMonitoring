@@ -34,6 +34,10 @@ public class AppConfig
     public bool StartMinimized { get; set; }
     public bool CloseToTray { get; set; } = true;
 
+    // ===== Notification area icon =====
+    public bool TrayClickHides { get; set; } = true;          // left click hides the window when it is on screen
+    public bool TrayServerStatus { get; set; }                // the icon's menu lists each server and its status
+
     // ===== Application updates (GitHub Releases, through Velopack) =====
     public bool AppUpdateCheck { get; set; } = true;          // check at startup, then every 12 h
     public bool AppUpdateAutoInstall { get; set; } = true;    // install on exit (or at the next startup)

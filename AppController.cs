@@ -58,6 +58,7 @@ public sealed class AppController : IDisposable
         _tray = new TrayIcon(GetTrayState);
         _tray.OpenRequested += ShowWindow;
         _tray.Clicked += ToggleWindow;
+        _tray.ServerRequested += ShowServer;
         _tray.CheckAllRequested += () => _ = CheckAllAsync();
         _tray.RefreshAllRequested += () => _ = Servers.RunForAllAsync(Servers.Servers, vm => Servers.RefreshAsync(vm));
         _tray.LockToggled += () =>
@@ -135,13 +136,21 @@ public sealed class AppController : IDisposable
         _window.Activate();
     }
 
-    /// <summary>Left click on the tray icon: hides the window when it is on screen, shows it otherwise.</summary>
+    /// <summary>Left click on the tray icon: hides the window when it is on screen (if enabled), shows it otherwise.</summary>
     private void ToggleWindow()
     {
-        if (_window is { IsVisible: true } && _window.WindowState != WindowState.Minimized)
+        if (Config.TrayClickHides && _window is { IsVisible: true } && _window.WindowState != WindowState.Minimized)
             HideToTray();
         else
             ShowWindow();
+    }
+
+    /// <summary>Opens the window on a server's page (server row of the tray menu).</summary>
+    private void ShowServer(Guid id)
+    {
+        ShowWindow();
+        if (Servers.Servers.FirstOrDefault(s => s.Id == id) is { } vm)
+            _window?.ShowDetail(vm);
     }
 
     /// <summary>Sends the application to the notification area.</summary>
@@ -423,5 +432,12 @@ public sealed class AppController : IDisposable
 
     private TrayState GetTrayState() =>
         new(SummaryText, Vault.Mode == StorageMode.MasterPassword, Vault.IsLocked, Servers.Servers.Count > 0,
-            Updater.State == AppUpdateState.Ready ? Updater.AvailableVersion : null);
+            Updater.State == AppUpdateState.Ready ? Updater.AvailableVersion : null,
+            Config.TrayServerStatus ? Servers.Servers.Select(s => new TrayServer(s.Id, s.Name, TrayDotOf(s))).ToList() : null);
+
+    /// <summary>Dot of a server in the tray menu: green up to date, orange updates available, red unreachable, gray not read yet.</summary>
+    private static TrayDot TrayDotOf(ServerViewModel vm) =>
+        vm.IsOnline ? (vm.HasUpdates ? TrayDot.Updates : TrayDot.Ok) :
+        vm.HasProblem ? TrayDot.Problem :
+        TrayDot.Neutral;
 }

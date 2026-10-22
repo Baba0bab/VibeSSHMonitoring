@@ -781,9 +781,20 @@
                                             Description="{ui:Tr Settings.StartMinimizedDesc}">
                                 <CheckBox x:Name="MinimizedSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
+
+                            <!-- Notification area icon -->
+                            <TextBlock Text="{ui:Tr Settings.Tray}" Style="{StaticResource SectionHeader}"/>
                             <ui:SettingCard Icon="&#xE711;" Header="{ui:Tr Settings.CloseToTray}"
                                             Description="{ui:Tr Settings.CloseToTrayDesc}">
                                 <CheckBox x:Name="CloseToTraySwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE7C9;" Header="{ui:Tr Settings.TrayClickHides}"
+                                            Description="{ui:Tr Settings.TrayClickHidesDesc}">
+                                <CheckBox x:Name="TrayClickHidesSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE9D2;" Header="{ui:Tr Settings.TrayServerStatus}"
+                                            Description="{ui:Tr Settings.TrayServerStatusDesc}">
+                                <CheckBox x:Name="TrayServerStatusSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
 
                             <TextBlock Text="{ui:Tr Settings.About}" Style="{StaticResource SectionHeader}"/>

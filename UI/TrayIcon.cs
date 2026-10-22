@@ -9,14 +9,21 @@ using VibeSSHMonitoring.Core;
 namespace VibeSSHMonitoring.UI;
 
 /// <summary>State shown by the tray menu, read again each time it opens.</summary>
-public record TrayState(string Status, bool CanLock, bool IsLocked, bool HasServers, string? UpdateVersion);
+public record TrayState(string Status, bool CanLock, bool IsLocked, bool HasServers, string? UpdateVersion,
+    IReadOnlyList<TrayServer>? Servers);
+
+/// <summary>A server row of the tray menu (when the per-server status is enabled).</summary>
+public record TrayServer(Guid Id, string Name, TrayDot Dot);
+
+/// <summary>Colored dot in front of a server of the tray menu.</summary>
+public enum TrayDot { Neutral, Ok, Updates, Problem }
 
 /// <summary>
-/// Notification area icon: left click = open the window, right click = quick actions (check,
-/// refresh, vault) without opening the window, Windows notifications (updates available,
-/// unreachable server). Pure Win32 (Shell_NotifyIcon, message window, native dark menu):
-/// neither WinForms nor the WPF rendering engine (~65 MB, never released once started) are
-/// loaded for the icon or its menu.
+/// Notification area icon: left click = open (or hide) the window, right click = status of each
+/// server (optional) and quick actions (check, refresh, vault) without opening the window,
+/// Windows notifications (updates available, unreachable server). Pure Win32 (Shell_NotifyIcon,
+/// message window, native dark menu): neither WinForms nor the WPF rendering engine (~65 MB,
+/// never released once started) are loaded for the icon or its menu.
 /// </summary>
 public sealed class TrayIcon : IDisposable
 {
@@ -67,6 +74,39 @@ public sealed class TrayIcon : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT { public int X, Y; }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BITMAPINFOHEADER
+    {
+        public int biSize;
+        public int biWidth;
+        public int biHeight;
+        public short biPlanes;
+        public short biBitCount;
+        public int biCompression;
+        public int biSizeImage;
+        public int biXPelsPerMeter;
+        public int biYPelsPerMeter;
+        public int biClrUsed;
+        public int biClrImportant;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MENUITEMINFO
+    {
+        public int cbSize;
+        public int fMask;
+        public int fType;
+        public int fState;
+        public int wID;
+        public IntPtr hSubMenu;
+        public IntPtr hbmpChecked;
+        public IntPtr hbmpUnchecked;
+        public IntPtr dwItemData;
+        public IntPtr dwTypeData;
+        public int cch;
+        public IntPtr hbmpItem;
+    }
+
     private delegate int SetPreferredAppModeDelegate(int mode);
     private delegate void FlushMenuThemesDelegate();
 
@@ -115,6 +155,17 @@ public sealed class TrayIcon : IDisposable
     private static extern bool SetMenuDefaultItem(IntPtr menu, int item, int byPosition);
 
     [DllImport("user32.dll")]
+    private static extern bool SetMenuItemInfo(IntPtr menu, int item, bool byPosition, ref MENUITEMINFO info);
+
+    // The header alone is a valid BITMAPINFO for 32-bit pixels (no color table)
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateDIBSection(IntPtr hdc, ref BITMAPINFOHEADER info, int usage, out IntPtr bits,
+        IntPtr section, int offset);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool DeleteObject(IntPtr gdiObject);
+
+    [DllImport("user32.dll")]
     private static extern int TrackPopupMenuEx(IntPtr menu, int flags, int x, int y, IntPtr hwnd, IntPtr parameters);
 
     [DllImport("user32.dll")]
@@ -156,6 +207,7 @@ public sealed class TrayIcon : IDisposable
     private const int SM_CXSMICON = 49, SM_MENUDROPALIGNMENT = 40;
     private const int IMAGE_ICON = 1;
     private const int MF_STRING = 0, MF_GRAYED = 0x1, MF_CHECKED = 0x8, MF_POPUP = 0x10, MF_SEPARATOR = 0x800;
+    private const int MIIM_BITMAP = 0x80;
     private const int TPM_RIGHTALIGN = 0x8, TPM_RIGHTBUTTON = 0x2, TPM_NONOTIFY = 0x80, TPM_RETURNCMD = 0x100;
     private const int LOAD_LIBRARY_SEARCH_SYSTEM32 = 0x800;
     private static readonly IntPtr AppIconId = 32512;   // IDI_APPLICATION: icon embedded by the .NET apphost
@@ -163,6 +215,7 @@ public sealed class TrayIcon : IDisposable
 
     // Menu command identifiers
     private const int CmdOpen = 1, CmdCheckAll = 2, CmdRefreshAll = 3, CmdLock = 4, CmdExit = 5, CmdInstallUpdate = 6;
+    private const int CmdServerFirst = 1000;   // + index in TrayState.Servers
 
     // ===== State =====
 
@@ -172,11 +225,14 @@ public sealed class TrayIcon : IDisposable
     private readonly IntPtr _module = GetModuleHandle(IntPtr.Zero);
     private readonly IntPtr _window;              // invisible window that receives the icon clicks
     private readonly IntPtr _icon;
+    private readonly Dictionary<TrayDot, IntPtr> _dots = new();   // menu bitmaps, created on first use
     private string _tooltip = "Vibe SSH Monitoring";
 
     public event Action? OpenRequested;
     /// <summary>Left click on the icon.</summary>
     public event Action? Clicked;
+    /// <summary>Click on a server row of the menu.</summary>
+    public event Action<Guid>? ServerRequested;
     public event Action? CheckAllRequested;
     public event Action? RefreshAllRequested;
     public event Action? LockToggled;
@@ -320,6 +376,21 @@ public sealed class TrayIcon : IDisposable
         {
             AppendMenu(menu, MF_STRING | MF_GRAYED, IntPtr.Zero, $"Vibe SSH Monitoring · {state.Status}");
             AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
+            if (state.Servers is { Count: > 0 } servers)
+            {
+                for (int i = 0; i < servers.Count; i++)
+                {
+                    AppendMenu(menu, MF_STRING, CmdServerFirst + i, servers[i].Name.Replace("&", "&&"));
+                    var item = new MENUITEMINFO
+                    {
+                        cbSize = Marshal.SizeOf<MENUITEMINFO>(),
+                        fMask = MIIM_BITMAP,
+                        hbmpItem = Dot(servers[i].Dot)
+                    };
+                    SetMenuItemInfo(menu, CmdServerFirst + i, false, ref item);
+                }
+                AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
+            }
             AppendMenu(menu, MF_STRING, CmdOpen, Loc.T("Tray.Open"));
             AppendMenu(menu, MF_STRING | (state.HasServers ? 0 : MF_GRAYED), CmdCheckAll, Loc.T("Tray.CheckAll"));
             AppendMenu(menu, MF_STRING | (state.HasServers ? 0 : MF_GRAYED), CmdRefreshAll, Loc.T("Tray.RefreshAll"));
@@ -345,12 +416,66 @@ public sealed class TrayIcon : IDisposable
                         (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0 ? TPM_RIGHTALIGN : 0);
             int command = TrackPopupMenuEx(menu, flags, cursor.X, cursor.Y, _window, IntPtr.Zero);
             PostMessage(_window, WM_NULL, IntPtr.Zero, IntPtr.Zero);
-            Execute(command);
+            if (command >= CmdServerFirst && state.Servers is { } list && command - CmdServerFirst < list.Count)
+                ServerRequested?.Invoke(list[command - CmdServerFirst].Id);
+            else
+                Execute(command);
         }
         finally
         {
             DestroyMenu(menu);   // also destroys the attached submenus
         }
+    }
+
+    /// <summary>
+    /// Colored dot of a server row, in the theme colors: a 32-bit bitmap with premultiplied
+    /// alpha, which themed menus (dark included) blend onto their background. Drawn here with
+    /// 4×4 supersampling for smooth edges, at the small icon size of the screen.
+    /// </summary>
+    private IntPtr Dot(TrayDot dot)
+    {
+        if (_dots.TryGetValue(dot, out IntPtr cached))
+            return cached;
+        uint rgb = dot switch
+        {
+            TrayDot.Ok => 0x3DD68C,        // SuccessColor
+            TrayDot.Updates => 0xF5B94B,   // WarningColor
+            TrayDot.Problem => 0xF2615C,   // DangerColor
+            _ => 0x8A8A99                  // NeutralColor
+        };
+        int size = GetSystemMetricsForDpi(SM_CXSMICON, GetDpiForSystem());
+        var header = new BITMAPINFOHEADER
+        {
+            biSize = Marshal.SizeOf<BITMAPINFOHEADER>(),
+            biWidth = size,
+            biHeight = -size,   // top-down
+            biPlanes = 1,
+            biBitCount = 32
+        };
+        IntPtr bitmap = CreateDIBSection(IntPtr.Zero, ref header, 0, out IntPtr bits, IntPtr.Zero, 0);
+        if (bitmap == IntPtr.Zero)
+            return IntPtr.Zero;   // no dot rather than no menu
+
+        var pixels = new int[size * size];
+        double center = size / 2.0, radius = size * 0.3;
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                int covered = 0;
+                for (int sy = 0; sy < 4; sy++)
+                    for (int sx = 0; sx < 4; sx++)
+                    {
+                        double dx = x + (sx + 0.5) / 4 - center, dy = y + (sy + 0.5) / 4 - center;
+                        if (dx * dx + dy * dy <= radius * radius)
+                            covered++;
+                    }
+                uint alpha = (uint)(covered * 255 / 16);
+                uint r = ((rgb >> 16) & 0xFF) * alpha / 255, g = ((rgb >> 8) & 0xFF) * alpha / 255, b = (rgb & 0xFF) * alpha / 255;
+                pixels[y * size + x] = (int)(alpha << 24 | r << 16 | g << 8 | b);
+            }
+        Marshal.Copy(pixels, 0, bits, pixels.Length);
+        _dots[dot] = bitmap;
+        return bitmap;
     }
 
     private void Execute(int command)
@@ -385,5 +510,7 @@ public sealed class TrayIcon : IDisposable
         UnregisterClass(WindowClass, _module);
         if (_icon != IntPtr.Zero)
             DestroyIcon(_icon);
+        foreach (IntPtr bitmap in _dots.Values)
+            DeleteObject(bitmap);
     }
 }
