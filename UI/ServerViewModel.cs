@@ -52,7 +52,10 @@ public sealed class ServerViewModel : ObservableObject
     private readonly StringBuilder _pendingLog = new();
     private bool _logFlushScheduled;
 
-    public ObservableCollection<PackageUpdate> Packages { get; } = new();
+    /// <summary>Set during an upgrade: the output drives the package rows.</summary>
+    private volatile AptProgressParser? _upgradeProgress;
+
+    public ObservableCollection<PackageRow> Packages { get; } = new();
 
     public ServerViewModel(ServerConfig config, EffectiveSettings settings)
     {
@@ -184,10 +187,8 @@ public sealed class ServerViewModel : ObservableObject
         set
         {
             _probe = value;
-            Packages.Clear();
-            if (value?.Packages is { } packages)
-                foreach (var p in packages.OrderByDescending(p => p.IsSecurity).ThenBy(p => p.Name))
-                    Packages.Add(p);
+            if (_upgradeProgress is null)
+                SyncPackages();
             OnPropertyChanged(string.Empty);
         }
     }
@@ -268,6 +269,104 @@ public sealed class ServerViewModel : ObservableObject
         _isBusy ? _busyText ?? Loc.T("Status.Busy") :
         HasProblem && _stateDetail is not null ? _stateDetail :
         _lastRefresh is { } t ? Loc.T("Status.LastReading", Format.Ago(t.ToUniversalTime())) : Loc.T("Status.FirstReading");
+
+    // ===== Package list and upgrade progress =====
+
+    /// <summary>
+    /// Rebuilds the list from the last reading: upgradable packages first (a failure stays shown),
+    /// then the packages the last upgrade installed, kept until the next check or upgrade.
+    /// </summary>
+    private void SyncPackages()
+    {
+        var listed = _probe?.Packages ?? [];
+        var failed = Packages.Where(r => r.Stage == PackageStage.Failed).Select(r => r.Name).ToHashSet();
+        var listedNames = listed.Select(p => p.Name).ToHashSet();
+        var rows = listed.OrderByDescending(p => p.IsSecurity).ThenBy(p => p.Name)
+            .Select(p => new PackageRow(p, failed.Contains(p.Name) ? PackageStage.Failed : PackageStage.Pending))
+            .Concat(Packages.Where(r => r.Stage == PackageStage.Done && !listedNames.Contains(r.Name)))
+            .ToList();
+        Packages.Clear();
+        foreach (var row in rows)
+            Packages.Add(row);
+    }
+
+    public bool IsUpgrading => _upgradeProgress is not null;
+
+    public double UpgradePercent => Packages.Count == 0
+        ? 0 : 100.0 * Packages.Count(r => r.Stage == PackageStage.Done) / Packages.Count;
+
+    /// <summary>Forgets the results of the previous upgrade ("Check updates", new upgrade).</summary>
+    public void ClearUpgradeResults()
+    {
+        foreach (var row in Packages.Where(r => r.Stage == PackageStage.Done).ToList())
+            Packages.Remove(row);
+        foreach (var row in Packages)
+            row.Stage = PackageStage.Pending;
+    }
+
+    public void BeginUpgrade()
+    {
+        ClearUpgradeResults();
+        _upgradeProgress = new AptProgressParser();
+        OnPropertyChanged(nameof(IsUpgrading));
+        OnPropertyChanged(nameof(UpgradePercent));
+    }
+
+    /// <summary>Upgrade output, from any thread.</summary>
+    public void FeedUpgradeOutput(string chunk)
+    {
+        if (_upgradeProgress is not { } parser)
+            return;
+        List<PackageProgress> changes;
+        lock (parser)
+            changes = parser.Feed(chunk);
+        if (changes.Count > 0)
+            Application.Current.Dispatcher.BeginInvoke(() => ApplyProgress(changes));
+    }
+
+    /// <summary>
+    /// End of the upgrade, before the list is read again: on success everything started is done
+    /// (what stays pending was kept back), on failure what was being installed failed.
+    /// </summary>
+    public void EndUpgrade(bool success)
+    {
+        if (_upgradeProgress is not { } parser)
+            return;
+        List<PackageProgress> changes;
+        lock (parser)
+            changes = parser.Complete(success);
+        ApplyProgress(changes);
+        foreach (var row in Packages)
+        {
+            if (row.Stage == PackageStage.Installing)
+                row.Stage = success ? PackageStage.Done : PackageStage.Failed;
+            else if (row.Stage == PackageStage.Downloading)
+                row.Stage = PackageStage.Pending;
+        }
+        _upgradeProgress = null;
+        OnPropertyChanged(nameof(IsUpgrading));
+        OnPropertyChanged(nameof(UpgradePercent));
+    }
+
+    private void ApplyProgress(List<PackageProgress> changes)
+    {
+        if (_upgradeProgress is null)
+            return;
+        foreach (var change in changes)
+        {
+            bool found = false;
+            foreach (var row in Packages.Where(r => r.Name == change.Name))
+            {
+                found = true;
+                row.Advance(change.Stage);
+            }
+            // Packages the list did not show (new dependency, new kernel…) appear once installing
+            if (!found && change.Stage is PackageStage.Installing or PackageStage.Done)
+                Packages.Add(new PackageRow(new PackageUpdate(change.Name, "", change.NewVersion ?? "",
+                    change.OldVersion ?? "", ""), change.Stage));
+        }
+        OnPropertyChanged(nameof(UpgradePercent));
+    }
 
     // ===== Running operation =====
 
@@ -363,6 +462,45 @@ public sealed class ServerViewModel : ObservableObject
         >= 75 => "WarningBrush",
         _ => "AccentBrush"
     });
+}
+
+/// <summary>A row of the package list: an upgradable package and where it stands during an upgrade.</summary>
+public sealed class PackageRow : ObservableObject
+{
+    private PackageStage _stage;
+
+    public PackageRow(PackageUpdate package, PackageStage stage = PackageStage.Pending)
+    {
+        Package = package;
+        _stage = stage;
+    }
+
+    public PackageUpdate Package { get; }
+    public string Name => Package.Name;
+    public string Suites => Package.Suites;
+    public string NewVersion => Package.NewVersion;
+    public string OldVersion => Package.OldVersion.Length > 0 ? Package.OldVersion : Loc.T("Package.New");
+    public bool IsSecurity => Package.IsSecurity;
+
+    public PackageStage Stage
+    {
+        get => _stage;
+        set
+        {
+            if (Set(ref _stage, value))
+                OnPropertyChanged(nameof(StageText));
+        }
+    }
+
+    /// <summary>Tooltip of the state icon.</summary>
+    public string StageText => Loc.T("Package.Stage" + _stage);
+
+    /// <summary>Moves forward only (a failure always shows).</summary>
+    public void Advance(PackageStage stage)
+    {
+        if (stage == PackageStage.Failed || stage > _stage)
+            Stage = stage;
+    }
 }
 
 /// <summary>

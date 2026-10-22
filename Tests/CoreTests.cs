@@ -173,6 +173,80 @@ public class ParserTests
         Assert.Equal("Reading package lists... Done\nBuilding dependency tree\n", log.Text);
     }
 
+    private const string UpgradeOutput = """
+        Hit:1 http://deb.debian.org/debian bookworm InRelease
+        Get:2 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+        Get:3 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [241 kB]
+        Reading package lists...
+        The following packages will be upgraded:
+          libc6 openssh-server
+        Get:1 http://deb.debian.org/debian-security bookworm-security/main amd64 libc6 amd64 2.36-9+deb12u7 [2,757 kB]
+        Get:2 http://deb.debian.org/debian-security bookworm-security/main amd64 openssh-server amd64 1:9.2p1-2+deb12u3 [456 kB]
+        Get:3 http://deb.debian.org/debian bookworm/main amd64 linux-image-6.1.0-27-amd64 amd64 6.1.115-1 [68.6 MB]
+        Fetched 3,213 kB in 1s (3,021 kB/s)
+        (Reading database ... 45%(Reading database ... 34512 files and directories currently installed.)
+        Preparing to unpack .../libc6_2.36-9+deb12u7_amd64.deb ...
+        Unpacking libc6:amd64 (2.36-9+deb12u7) over (2.36-9+deb12u4) ...
+        Preparing to unpack .../openssh-server_1%3a9.2p1-2+deb12u3_amd64.deb ...
+        Unpacking openssh-server (1:9.2p1-2+deb12u3) over (1:9.2p1-2+deb12u2) ...
+        Selecting previously unselected package linux-image-6.1.0-27-amd64.
+        Unpacking linux-image-6.1.0-27-amd64 (6.1.115-1) ...
+        Setting up libc6:amd64 (2.36-9+deb12u7) ...
+        Setting up openssh-server (1:9.2p1-2+deb12u3) ...
+        rescue-ssh.target is a disabled or a static unit, not starting it.
+        Setting up linux-image-6.1.0-27-amd64 (6.1.115-1) ...
+        Processing triggers for man-db (2.11.2-2) ...
+        """;
+
+    [Fact]
+    public void AptProgress_FollowsEachPackage()
+    {
+        var parser = new AptProgressParser();
+        var changes = new List<PackageProgress>();
+        // Pieces cut anywhere, as they come from the SSH stream
+        for (int i = 0; i < UpgradeOutput.Length; i += 37)
+            changes.AddRange(parser.Feed(UpgradeOutput.Substring(i, Math.Min(37, UpgradeOutput.Length - i))));
+        changes.AddRange(parser.Complete(success: true));
+
+        List<PackageStage> StagesOf(string name) => changes.Where(c => c.Name == name).Select(c => c.Stage).ToList();
+        PackageStage[] expected = [PackageStage.Downloading, PackageStage.Installing, PackageStage.Installing, PackageStage.Done];
+        Assert.Equal(expected, StagesOf("libc6"));
+        Assert.Equal(expected, StagesOf("openssh-server"));
+        Assert.Equal(expected, StagesOf("linux-image-6.1.0-27-amd64"));
+        Assert.Empty(StagesOf("Packages"));
+        Assert.Empty(StagesOf("man-db"));
+
+        var unpack = changes.First(c => c.Name == "openssh-server" && c.Stage == PackageStage.Installing);
+        Assert.Equal(("1:9.2p1-2+deb12u3", "1:9.2p1-2+deb12u2"), (unpack.NewVersion, unpack.OldVersion));
+        Assert.Null(changes.First(c => c.Name == "linux-image-6.1.0-27-amd64" && c.Stage == PackageStage.Installing).OldVersion);
+    }
+
+    [Fact]
+    public void AptProgress_ReportsFailures()
+    {
+        var parser = new AptProgressParser();
+        var changes = parser.Feed("Setting up nginx (1.22.1-9) ...\r\nJob for nginx.service failed.\r\n"
+            + "dpkg: error processing package nginx (--configure):\r\n"
+            + "Setting up curl (7.88.1-10) ...\r\n");
+        changes.AddRange(parser.Complete(success: false));
+        Assert.Equal([PackageStage.Installing, PackageStage.Failed], changes.Where(c => c.Name == "nginx").Select(c => c.Stage));
+        Assert.Equal([PackageStage.Installing], changes.Where(c => c.Name == "curl").Select(c => c.Stage));
+    }
+
+    [Fact]
+    public void PackageRow_OnlyMovesForward()
+    {
+        var row = new PackageRow(new PackageUpdate("libc6", "bookworm-security", "2", "1", "amd64"));
+        row.Advance(PackageStage.Installing);
+        row.Advance(PackageStage.Downloading);
+        Assert.Equal(PackageStage.Installing, row.Stage);
+        row.Advance(PackageStage.Done);
+        row.Advance(PackageStage.Installing);
+        Assert.Equal(PackageStage.Done, row.Stage);
+        row.Advance(PackageStage.Failed);
+        Assert.Equal(PackageStage.Failed, row.Stage);
+    }
+
     [Fact]
     public void EffectiveSettings_ServerOverridesGlobal()
     {

@@ -371,6 +371,7 @@ public sealed class ServerManager : IDisposable
         RunActionAsync(vm, Loc.T("Busy.CheckingUpdates"), interactive, async (connection, ct) =>
         {
             vm.AppendLogLine($"\n━━ {DateTime.Now:HH:mm:ss} · {Loc.T("Log.CheckUpdates")} ━━");
+            vm.ClearUpgradeResults();
             var result = await Task.Run(() => connection.RunAsRootAsync(RemoteCommands.AptUpdate, vm.AppendLog, ct), ct);
             if (!result.Success)
                 throw new SshOperationException(SshErrorKind.Other, Loc.T("Error.AptUpdateFailed", result.ExitCode));
@@ -391,7 +392,21 @@ public sealed class ServerManager : IDisposable
             string verb = settings.Upgrade == UpgradeKind.FullUpgrade ? "full-upgrade" : "upgrade";
             vm.AppendLogLine($"\n━━ {DateTime.Now:HH:mm:ss} · {Loc.T("Log.Upgrade", verb)} ━━");
             var script = RemoteCommands.AptUpgrade(settings.Upgrade, settings.AutoRemove);
-            var result = await Task.Run(() => connection.RunAsRootAsync(script, vm.AppendLog, ct), ct);
+            // The package list follows the output: pending, being installed, done
+            vm.BeginUpgrade();
+            CommandResult? result = null;
+            try
+            {
+                result = await Task.Run(() => connection.RunAsRootAsync(script, chunk =>
+                {
+                    vm.AppendLog(chunk);
+                    vm.FeedUpgradeOutput(chunk);
+                }, ct), ct);
+            }
+            finally
+            {
+                vm.EndUpgrade(result?.Success == true);
+            }
             if (!result.Success)
                 throw new SshOperationException(SshErrorKind.Other, Loc.T("Error.UpgradeFailed", result.ExitCode));
 

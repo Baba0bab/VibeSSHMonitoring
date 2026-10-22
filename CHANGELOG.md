@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- The update list on a server's page now follows an upgrade live: each package shows an icon for waiting, downloading, installing (spinner), updated (check) or failed, with a progress bar above the list. Packages the upgrade adds (new dependencies, a new kernel) appear as they are installed, and the updated packages stay listed until the next check or upgrade.
+
+### Changed
+- The upgrade runs apt in the C locale so its progress can be read, which means the upgrade log is now always in English.
+
 ## [1.0.3-beta.1] - 2026-10-22
 
 ### Added

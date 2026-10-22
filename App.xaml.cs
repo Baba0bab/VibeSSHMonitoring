@@ -11,7 +11,12 @@ namespace VibeSSHMonitoring;
 
 public partial class App : Application
 {
+#if DEBUG
+    // The demo mode runs beside an installed copy
+    private static readonly string InstanceName = "VibeSSHMonitoring_SingleInstance" + (UpgradeDemo.Enabled ? "_Demo" : "");
+#else
     private const string InstanceName = "VibeSSHMonitoring_SingleInstance";
+#endif
 
     /// <summary>Argument of a restart (language change): wait for the previous instance to exit.</summary>
     public const string WaitForArgument = "--wait-for";

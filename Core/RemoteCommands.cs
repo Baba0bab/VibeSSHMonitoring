@@ -74,12 +74,13 @@ public static partial class RemoteCommands
 
     /// <summary>
     /// "Update": non-interactive upgrade. Locally modified configuration files are kept
-    /// (confold); needrestart restarts the affected services.
+    /// (confold); needrestart restarts the affected services. C locale: <see cref="AptProgressParser"/>
+    /// reads the dpkg messages to follow each package.
     /// </summary>
     public static string AptUpgrade(UpgradeKind kind, bool autoRemove)
     {
         string verb = kind == UpgradeKind.FullUpgrade ? "full-upgrade" : "upgrade";
-        var sb = new StringBuilder("export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a\n");
+        var sb = new StringBuilder("export LC_ALL=C DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a\n");
         sb.Append($"apt-get {AptOptions} update || exit $?\n");
         sb.Append($"apt-get -y {AptOptions} -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold ")
           .Append($"-o Dpkg::Progress-Fancy=0 {verb} || exit $?\n");

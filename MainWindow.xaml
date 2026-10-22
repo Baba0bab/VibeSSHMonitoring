@@ -501,6 +501,9 @@
                                         <Run Text="{Binding UpdatesText, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Normal"/>
                                     </TextBlock>
                                     <TextBlock Text="{Binding LastCheckText}" Style="{StaticResource Caption}" Margin="2,0,0,8"/>
+                                    <ProgressBar Style="{StaticResource Meter}" Height="4" Margin="2,0,2,10"
+                                                 Value="{Binding UpgradePercent, Mode=OneWay}"
+                                                 Visibility="{Binding IsUpgrading, Converter={StaticResource BoolToVisibility}}"/>
                                 </StackPanel>
                             </Grid>
                             <Border Style="{StaticResource Card}" Padding="0">
@@ -513,29 +516,73 @@
                                                 <Border BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,0,0,1" Padding="18,9">
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="26"/>
                                                             <ColumnDefinition Width="2*"/>
                                                             <ColumnDefinition Width="3*"/>
                                                             <ColumnDefinition Width="2*"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <StackPanel Orientation="Horizontal">
+                                                        <!-- State during an upgrade: pending, downloading, installing, done, failed -->
+                                                        <Grid Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                              Background="Transparent" ToolTip="{Binding StageText}">
+                                                            <Ellipse x:Name="pendingIcon" Width="9" Height="9"
+                                                                     Stroke="{StaticResource TextTertiaryBrush}" StrokeThickness="1.5"/>
+                                                            <TextBlock x:Name="stageGlyph" Style="{StaticResource Icon}" FontSize="13"
+                                                                       HorizontalAlignment="Center" Visibility="Collapsed"/>
+                                                            <Control x:Name="stageSpinner" Style="{StaticResource Spinner}" Width="14" Height="14"
+                                                                     Visibility="Collapsed"/>
+                                                        </Grid>
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
                                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                                             <Border x:Name="secBadge" Style="{StaticResource DangerBadge}" Margin="8,0,0,0" Visibility="Collapsed">
                                                                 <TextBlock Text="{ui:Tr Detail.SecurityBadge}" FontSize="11" Foreground="#FFFF8F8A"/>
                                                             </Border>
                                                         </StackPanel>
-                                                        <TextBlock Grid.Column="1" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                                        <TextBlock Grid.Column="2" FontFamily="{StaticResource MonoFont}" FontSize="12"
                                                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0">
                                                             <Run Text="{Binding OldVersion, Mode=OneWay}" Foreground="{StaticResource TextTertiaryBrush}"/>
                                                             <Run Text=" → " Foreground="{StaticResource TextTertiaryBrush}"/>
                                                             <Run Text="{Binding NewVersion, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
                                                         </TextBlock>
-                                                        <TextBlock Grid.Column="2" Text="{Binding Suites}" Style="{StaticResource Caption}"
+                                                        <TextBlock Grid.Column="3" Text="{Binding Suites}" Style="{StaticResource Caption}"
                                                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                     </Grid>
                                                 </Border>
                                                 <DataTemplate.Triggers>
                                                     <DataTrigger Binding="{Binding IsSecurity}" Value="True">
                                                         <Setter TargetName="secBadge" Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Stage}" Value="Downloading">
+                                                        <Setter TargetName="pendingIcon" Property="Visibility" Value="Collapsed"/>
+                                                        <Setter TargetName="stageGlyph" Property="Visibility" Value="Visible"/>
+                                                        <Setter TargetName="stageGlyph" Property="Text" Value="&#xE896;"/>
+                                                        <Setter TargetName="stageGlyph" Property="Foreground" Value="{StaticResource AccentLightBrush}"/>
+                                                        <DataTrigger.EnterActions>
+                                                            <BeginStoryboard x:Name="downloadPulse">
+                                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                                    <DoubleAnimation Storyboard.TargetName="stageGlyph" Storyboard.TargetProperty="Opacity"
+                                                                                     From="1" To="0.3" Duration="0:0:0.6"/>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </DataTrigger.EnterActions>
+                                                        <DataTrigger.ExitActions>
+                                                            <StopStoryboard BeginStoryboardName="downloadPulse"/>
+                                                        </DataTrigger.ExitActions>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Stage}" Value="Installing">
+                                                        <Setter TargetName="pendingIcon" Property="Visibility" Value="Collapsed"/>
+                                                        <Setter TargetName="stageSpinner" Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Stage}" Value="Done">
+                                                        <Setter TargetName="pendingIcon" Property="Visibility" Value="Collapsed"/>
+                                                        <Setter TargetName="stageGlyph" Property="Visibility" Value="Visible"/>
+                                                        <Setter TargetName="stageGlyph" Property="Text" Value="&#xE73E;"/>
+                                                        <Setter TargetName="stageGlyph" Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Stage}" Value="Failed">
+                                                        <Setter TargetName="pendingIcon" Property="Visibility" Value="Collapsed"/>
+                                                        <Setter TargetName="stageGlyph" Property="Visibility" Value="Visible"/>
+                                                        <Setter TargetName="stageGlyph" Property="Text" Value="&#xE711;"/>
+                                                        <Setter TargetName="stageGlyph" Property="Foreground" Value="{StaticResource DangerBrush}"/>
                                                     </DataTrigger>
                                                 </DataTemplate.Triggers>
                                             </DataTemplate>

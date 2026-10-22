@@ -75,6 +75,10 @@ public partial class MainWindow : Window
     {
         _app = app;
         InitializeComponent();
+#if DEBUG
+        if (UpgradeDemo.Enabled)
+            Dispatcher.BeginInvoke(() => UpgradeDemo.Run(ShowDetail, _app.Config.EffectiveFor));
+#endif
 
         _navItems = new[] { NavServers, NavTerminals, NavSettings };
         foreach (var page in new FrameworkElement[] { ServersPage, DetailPage, SettingsPage })

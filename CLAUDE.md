@@ -49,6 +49,8 @@ Baked into every installed copy or into users' data:
 ## Checking a change
 
 - **No Linux server here** (no WSL, no Docker): anything touching a real server must be validated by the user on their servers. Shell scripts are at least checked by the tests (`sh -n` with Git's sh).
+- **Upgrade progress without a server**: a Debug build started with `VIBESSHMONITORING_DEMO=1` opens a fake
+  server that replays an upgrade in a loop (`UI/UpgradeDemo.cs`), and runs beside an installed copy.
 - **Interface**: start with `VIBESSHMONITORING_HOME` (never touch the real config), then
   `tools/ui-test/Invoke-UiElement.ps1` (click by name, `-AutomationId x -Value y`, `-List`) and
   `tools/ui-test/Capture-Window.ps1 -Out shot.png` (captures even a hidden window). Desktop screenshots
