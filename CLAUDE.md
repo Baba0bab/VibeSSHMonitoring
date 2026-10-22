@@ -12,7 +12,8 @@ a French section). The interface is translated into English, French, German and 
 ```powershell
 dotnet build VibeSSHMonitoring.slnx -c Release      # must give 0 warnings
 dotnet test Tests                                    # 26+ tests (vault, parsing, translations, shell scripts via Git's sh)
-$env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-test"; dotnet run   # isolated configuration and vault
+dotnet run                                           # real configuration (Properties/launchSettings.json clears the test variables)
+dotnet run --launch-profile Test                     # test mode: %TEMP%\VibeSSHMonitoring.Demo + demo server
 ./scripts/pack.ps1 -Version 1.2.3 -OutputDir $env:TEMP\vsm-pack  # installer + Velopack packages, publishes nothing
 ```
 
@@ -49,7 +50,11 @@ Baked into every installed copy or into users' data:
 ## Checking a change
 
 - **No Linux server here** (no WSL, no Docker): anything touching a real server must be validated by the user on their servers. Shell scripts are at least checked by the tests (`sh -n` with Git's sh).
-- **Upgrade progress without a server**: a Debug build started with `VIBESSHMONITORING_DEMO=1` opens a fake
+- **`dotnet run` and environment variables**: the default launch profile empties `VIBESSHMONITORING_HOME` and
+  `VIBESSHMONITORING_DEMO`, so `$env:VIBESSHMONITORING_HOME = …; dotnet run` opens the **real** config. For an
+  isolated folder, use `--launch-profile Test` or start the built exe directly. Never give the user `$env:` commands
+  to paste: they stay set in their terminal.
+- **Upgrade progress without a server**: a Debug build started with `VIBESSHMONITORING_DEMO=1` (profile `Test`) opens a fake
   server that replays an upgrade in a loop (`UI/UpgradeDemo.cs`), and runs beside an installed copy.
 - **Interface**: start with `VIBESSHMONITORING_HOME` (never touch the real config), then
   `tools/ui-test/Invoke-UiElement.ps1` (click by name, `-AutomationId x -Value y`, `-List`) and

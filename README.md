@@ -106,7 +106,8 @@ Prerequisites: [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) 
 ```powershell
 git clone https://github.com/Baba0bab/VibeSSHMonitoring.git
 cd VibeSSHMonitoring
-dotnet run                          # build and start (Debug)
+dotnet run                          # build and start (Debug), with your real servers
+dotnet run --launch-profile Test    # test mode: separate data and a demo server
 dotnet test Tests                   # unit tests
 ```
 
@@ -114,11 +115,9 @@ A copy started with `dotnet run` is not installed: automatic updates are disable
 
 **Tests** cover the vault (master password, wrong password, mode changes), output parsing (`apt list`, `/proc`), settings resolution, SSH arguments, translations (same keys and placeholders in every language), and the syntax of every shell script sent to servers, checked with Git for Windows' `sh` when it is installed.
 
-**Isolated test data**: set `VIBESSHMONITORING_HOME` to a folder to run the app with a separate configuration and vault:
+`dotnet run` always opens your real configuration, even in a terminal where test variables are still set; quit the installed copy first (notification area icon › Quit), otherwise only its window is shown.
 
-```powershell
-$env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-test"; dotnet run
-```
+**Test mode**: `dotnet run --launch-profile Test` uses a separate configuration and vault (`%TEMP%\VibeSSHMonitoring.Demo`) and adds a demo server that replays an upgrade in a loop. It runs beside the installed copy. To pick the folder, set `VIBESSHMONITORING_HOME` before this command, or before starting the built exe directly.
 
 ### Building the installer
 

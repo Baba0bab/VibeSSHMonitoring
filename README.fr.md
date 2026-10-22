@@ -106,7 +106,8 @@ Prérequis : [SDK .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0) et
 ```powershell
 git clone https://github.com/Baba0bab/VibeSSHMonitoring.git
 cd VibeSSHMonitoring
-dotnet run                          # compile et lance (Debug)
+dotnet run                          # compile et lance (Debug), avec vos vrais serveurs
+dotnet run --launch-profile Test    # mode test : données séparées et un serveur de démonstration
 dotnet test Tests                   # tests unitaires
 ```
 
@@ -114,11 +115,9 @@ Une copie lancée avec `dotnet run` n'est pas installée : les mises à jour aut
 
 **Les tests** couvrent le coffre (mot de passe maître, mauvais mot de passe, changements de mode), la lecture des sorties (`apt list`, `/proc`), la résolution des réglages, les arguments SSH, les traductions (mêmes clés et mêmes paramètres dans chaque langue) et la syntaxe de chaque script shell envoyé aux serveurs, vérifiée avec le `sh` de Git for Windows s'il est installé.
 
-**Données de test isolées** : la variable `VIBESSHMONITORING_HOME` lance l'application avec une configuration et un coffre séparés :
+`dotnet run` ouvre toujours votre vraie configuration, même dans un terminal où des variables de test sont encore définies ; quittez d'abord la copie installée (icône de la zone de notification › Quitter), sinon seule sa fenêtre s'affiche.
 
-```powershell
-$env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-test"; dotnet run
-```
+**Mode test** : `dotnet run --launch-profile Test` utilise une configuration et un coffre séparés (`%TEMP%\VibeSSHMonitoring.Demo`) et ajoute un serveur de démonstration qui rejoue une mise à jour en boucle. Il tourne à côté de la copie installée. Pour choisir le dossier, définissez `VIBESSHMONITORING_HOME` avant cette commande, ou avant de lancer directement l'exe compilé.
 
 ### Construire l'installateur
 

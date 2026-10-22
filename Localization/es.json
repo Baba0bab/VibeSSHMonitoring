@@ -3,6 +3,7 @@
   "Access.Root": "root directo",
   "Access.Su": "mediante su",
   "Access.Sudo": "mediante sudo",
+  "App.AlreadyRunningDebug": "Ya se está ejecutando otra copia de Vibe SSH Monitoring (probablemente la versión instalada): se muestra su ventana en su lugar.\n\nPara probar esta compilación con sus servidores, cierre primero esa copia (icono del área de notificación › Salir) y vuelva a iniciar esta compilación.",
   "Action.CheckUpdates": "Buscar actualizaciones",
   "Action.CheckUpdates.Short": "Buscar",
   "Action.CheckUpdatesTip": "apt update y luego la lista de paquetes por actualizar",

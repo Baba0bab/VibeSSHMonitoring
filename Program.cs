@@ -11,6 +11,11 @@ public static class Program
     [STAThread]
     public static void Main()
     {
+#if DEBUG
+        // The demo never uses the real configuration, even when no folder was given
+        if (UI.UpgradeDemo.Enabled && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VIBESSHMONITORING_HOME")))
+            Environment.SetEnvironmentVariable("VIBESSHMONITORING_HOME", System.IO.Path.Combine(System.IO.Path.GetTempPath(), "VibeSSHMonitoring.Demo"));
+#endif
         var config = AppConfig.Load();
 
         // First of all: the installer and the updater restart the exe with their own arguments

@@ -38,6 +38,10 @@ public partial class App : Application
                 signal.Set();
                 signal.Dispose();
             }
+#if DEBUG
+            // Otherwise a dev build silently shows the installed copy instead of itself
+            Dialogs.Info(null, "Vibe SSH Monitoring", Loc.T("App.AlreadyRunningDebug"));
+#endif
             Shutdown();
             return;
         }

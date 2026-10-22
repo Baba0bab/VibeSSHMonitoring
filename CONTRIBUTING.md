@@ -13,8 +13,8 @@ Open an [issue](https://github.com/Baba0bab/VibeSSHMonitoring/issues/new/choose)
 ### Development setup
 
 1. Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (and optionally Git for Windows, used by the shell-script tests).
-2. `dotnet run` builds and starts the app; `dotnet test Tests` runs the tests.
-3. Use a separate data folder so you don't touch your real servers: `$env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-dev"`.
+2. `dotnet run` builds and starts the app with your real configuration; `dotnet test Tests` runs the tests.
+3. To avoid touching your real servers, use the test mode: `dotnet run --launch-profile Test` (separate data folder and a demo server).
 4. Test against a disposable Debian / Ubuntu machine (VM, container with `openssh-server`, cheap VPS), never against production first.
 
 ### Pull requests
@@ -40,8 +40,8 @@ Ouvrez une [issue](https://github.com/Baba0bab/VibeSSHMonitoring/issues/new/choo
 ### Environnement de développement
 
 1. Installez le [SDK .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0) (et si possible Git for Windows, utilisé par les tests de scripts shell).
-2. `dotnet run` compile et lance l'application ; `dotnet test Tests` lance les tests.
-3. Utilisez un dossier de données séparé pour ne pas toucher à vos vrais serveurs : `$env:VIBESSHMONITORING_HOME = "$env:TEMP\vsm-dev"`.
+2. `dotnet run` compile et lance l'application avec votre vraie configuration ; `dotnet test Tests` lance les tests.
+3. Pour ne pas toucher à vos vrais serveurs, utilisez le mode test : `dotnet run --launch-profile Test` (dossier de données séparé et un serveur de démonstration).
 4. Testez sur une machine Debian / Ubuntu jetable (VM, conteneur avec `openssh-server`, petit VPS), jamais d'abord en production.
 
 ### Pull requests

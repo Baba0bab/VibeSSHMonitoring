@@ -1,0 +1,17 @@
+{
+  "profiles": {
+    "VibeSSHMonitoring": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "VIBESSHMONITORING_HOME": "",
+        "VIBESSHMONITORING_DEMO": ""
+      }
+    },
+    "Test": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "VIBESSHMONITORING_DEMO": "1"
+      }
+    }
+  }
+}
