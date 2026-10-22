@@ -42,6 +42,7 @@ public class ServerSettings
     public bool? RootShell { get; set; }          // terminal opened directly as root
     public UpgradeKind? Upgrade { get; set; }
     public bool? AutoRemove { get; set; }
+    public bool? OpenDetailsOnUpgrade { get; set; }  // "Update" opens the server page to follow the log
 
     public static ServerSettings CreateDefaults() => new()
     {
@@ -56,7 +57,8 @@ public class ServerSettings
         Terminal = TerminalMode.Embedded,
         RootShell = false,
         Upgrade = UpgradeKind.Upgrade,
-        AutoRemove = false
+        AutoRemove = false,
+        OpenDetailsOnUpgrade = true
     };
 
     /// <summary>Fills in missing values (configuration written by an older version).</summary>
@@ -74,19 +76,22 @@ public class ServerSettings
         RootShell ??= defaults.RootShell;
         Upgrade ??= defaults.Upgrade;
         AutoRemove ??= defaults.AutoRemove;
+        OpenDetailsOnUpgrade ??= defaults.OpenDetailsOnUpgrade;
     }
 
     public bool HasOverrides =>
         ShowOnline.HasValue || ShowResources.HasValue || ShowSystem.HasValue || ShowUpdates.HasValue ||
         RefreshSeconds.HasValue || AutoCheckHours.HasValue || NotifyUpdates.HasValue || NotifyOffline.HasValue ||
-        Terminal.HasValue || RootShell.HasValue || Upgrade.HasValue || AutoRemove.HasValue;
+        Terminal.HasValue || RootShell.HasValue || Upgrade.HasValue || AutoRemove.HasValue ||
+        OpenDetailsOnUpgrade.HasValue;
 }
 
 /// <summary>Effective settings of a server: its own value when set, otherwise the global one.</summary>
 public sealed record EffectiveSettings(
     bool ShowOnline, bool ShowResources, bool ShowSystem, bool ShowUpdates,
     int RefreshSeconds, int AutoCheckHours, bool NotifyUpdates, bool NotifyOffline,
-    TerminalMode Terminal, bool RootShell, UpgradeKind Upgrade, bool AutoRemove)
+    TerminalMode Terminal, bool RootShell, UpgradeKind Upgrade, bool AutoRemove,
+    bool OpenDetailsOnUpgrade)
 {
     public static EffectiveSettings Resolve(ServerSettings global, ServerSettings? server)
     {
@@ -103,7 +108,8 @@ public sealed record EffectiveSettings(
             s.Terminal ?? global.Terminal ?? TerminalMode.Embedded,
             s.RootShell ?? global.RootShell ?? false,
             s.Upgrade ?? global.Upgrade ?? UpgradeKind.Upgrade,
-            s.AutoRemove ?? global.AutoRemove ?? false);
+            s.AutoRemove ?? global.AutoRemove ?? false,
+            s.OpenDetailsOnUpgrade ?? global.OpenDetailsOnUpgrade ?? true);
     }
 }
 
@@ -149,7 +155,8 @@ public class ServerConfig
             RefreshSeconds = Overrides.RefreshSeconds, AutoCheckHours = Overrides.AutoCheckHours,
             NotifyUpdates = Overrides.NotifyUpdates, NotifyOffline = Overrides.NotifyOffline,
             Terminal = Overrides.Terminal, RootShell = Overrides.RootShell,
-            Upgrade = Overrides.Upgrade, AutoRemove = Overrides.AutoRemove
+            Upgrade = Overrides.Upgrade, AutoRemove = Overrides.AutoRemove,
+            OpenDetailsOnUpgrade = Overrides.OpenDetailsOnUpgrade
         };
         return copy;
     }

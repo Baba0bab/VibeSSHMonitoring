@@ -251,6 +251,8 @@
   "Settings.Monitoring": "Monitoring",
   "Settings.NotifyOffline": "Notify when a server stops responding",
   "Settings.NotifyUpdates": "Notify about new updates",
+  "Settings.OpenDetailsOnUpgrade": "Open the server page when updating",
+  "Settings.OpenDetailsOnUpgradeDesc": "\"Update\" shows the server's details to follow the log live. Off: you stay on the current page and follow the progress on the card.",
   "Settings.RefreshInterval": "Reading interval",
   "Settings.RootShell": "Open the terminal directly as root",
   "Settings.RootShellDesc": "Runs sudo -i or su - when opening (built-in terminal: the password is typed for you).",

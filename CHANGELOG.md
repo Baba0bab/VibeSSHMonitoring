@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- New setting *Open the server page when updating* (*Settings → Server updates*, and per server in its editor): turn it off to stay on the current page when clicking **Update** and follow the progress on the card. On by default, as before.
+
 ### Fixed
 - The *Check updates*, *Update* and *Open SSH* buttons, and the texts that mention them, are now translated (they stayed in English in every language).
 - The "could not start ssh-keygen" error is now translated.

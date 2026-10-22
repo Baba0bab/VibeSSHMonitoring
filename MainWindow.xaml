@@ -661,6 +661,10 @@
                                             Description="{ui:Tr Settings.AutoRemoveDesc}">
                                 <CheckBox x:Name="AutoRemoveSwitch" Style="{StaticResource Switch}"/>
                             </ui:SettingCard>
+                            <ui:SettingCard Icon="&#xE8A7;" Header="{ui:Tr Settings.OpenDetailsOnUpgrade}"
+                                            Description="{ui:Tr Settings.OpenDetailsOnUpgradeDesc}">
+                                <CheckBox x:Name="OpenDetailsOnUpgradeSwitch" Style="{StaticResource Switch}"/>
+                            </ui:SettingCard>
 
                             <!-- Application updates (GitHub Releases) -->
                             <TextBlock Text="{ui:Tr Settings.AppUpdates}" Style="{StaticResource SectionHeader}"/>

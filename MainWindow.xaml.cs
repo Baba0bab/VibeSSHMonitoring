@@ -474,7 +474,8 @@ public partial class MainWindow : Window
         if (!Dialogs.Confirm(this, Loc.T("Upgrade.ConfirmTitle", vm.Name), Loc.T("Upgrade.ConfirmText", verb, packages),
                 Loc.T("Upgrade.ConfirmButton")))
             return;
-        ShowDetail(vm);   // to follow the log live
+        if (vm.Settings.OpenDetailsOnUpgrade)
+            ShowDetail(vm);   // to follow the log live
         await _app.Servers.UpgradeAsync(vm);
     }
 
@@ -812,6 +813,7 @@ public partial class MainWindow : Window
         BindSwitch(NotifyOfflineSwitch, d.NotifyOffline == true, v => { d.NotifyOffline = v; SaveDefaults(); });
         BindSegments(UpgradeSegments, d.Upgrade.ToString()!, tag => { d.Upgrade = Enum.Parse<UpgradeKind>(tag); SaveDefaults(); });
         BindSwitch(AutoRemoveSwitch, d.AutoRemove == true, v => { d.AutoRemove = v; SaveDefaults(); });
+        BindSwitch(OpenDetailsOnUpgradeSwitch, d.OpenDetailsOnUpgrade == true, v => { d.OpenDetailsOnUpgrade = v; SaveDefaults(); });
 
         BindSwitch(StartupSwitch, StartupManager.IsEnabled(), v => StartupManager.SetEnabled(v, config.StartMinimized));
         BindSwitch(MinimizedSwitch, config.StartMinimized, v =>

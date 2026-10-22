@@ -159,6 +159,7 @@ public partial class ServerEditWindow : Window
             new (string, object)[] { ("upgrade", UpgradeKind.Upgrade), ("full-upgrade", UpgradeKind.FullUpgrade) },
             d.Upgrade, current.Upgrade, (o, v) => o.Upgrade = (UpgradeKind?)v);
         AddBool("", Loc.T("Editor.OverrideAutoRemove"), d.AutoRemove, current.AutoRemove, (o, v) => o.AutoRemove = (bool?)v);
+        AddBool("", Loc.T("Settings.OpenDetailsOnUpgrade"), d.OpenDetailsOnUpgrade, current.OpenDetailsOnUpgrade, (o, v) => o.OpenDetailsOnUpgrade = (bool?)v);
 
         void AddBool(string icon, string header, bool? global, bool? value, Action<ServerSettings, object?> apply) =>
             Add(icon, header, onOff, global, value, apply);

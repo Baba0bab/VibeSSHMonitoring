@@ -251,6 +251,8 @@
   "Settings.Monitoring": "Supervisión",
   "Settings.NotifyOffline": "Avisar cuando un servidor deje de responder",
   "Settings.NotifyUpdates": "Avisar de nuevas actualizaciones",
+  "Settings.OpenDetailsOnUpgrade": "Abrir la página del servidor al actualizar",
+  "Settings.OpenDetailsOnUpgradeDesc": "«Update» muestra el detalle del servidor para seguir el registro en directo. Desactivado: se queda en la página actual y sigue el progreso en la tarjeta.",
   "Settings.RefreshInterval": "Intervalo de lectura",
   "Settings.RootShell": "Abrir el terminal directamente como root",
   "Settings.RootShellDesc": "Ejecuta sudo -i o su - al abrir (terminal integrado: la contraseña se escribe por usted).",
