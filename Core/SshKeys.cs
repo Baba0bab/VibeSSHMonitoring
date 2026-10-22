@@ -31,7 +31,7 @@ public static class SshKeys
         foreach (var arg in new[] { "-t", "ed25519", "-N", "", "-C", $"{Environment.UserName}@{Environment.MachineName}", "-f", path })
             psi.ArgumentList.Add(arg);
 
-        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Impossible de lancer ssh-keygen.");
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException(Loc.T("Keys.KeygenStartFailed"));
         string error = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
         if (process.ExitCode != 0 || !HasKeyPair(path))

@@ -32,7 +32,6 @@ The user may have the installed copy running (`%LOCALAPPDATA%\VibeSSHMonitoring\
 - Never hard-code interface text: `Loc.T("Area.Key")` / `Loc.T("Area.Key", args)` in C#, `{ui:Tr Area.Key}` in XAML (`UI/TrExtension.cs`).
 - Add every new key to **all** files of `Localization/` (`en.json` is the reference and the fallback). `LocalizationTests` fails if a language misses a key or a placeholder, or has a different number of `|` separators.
 - Texts are read when an element is built: a language change needs a restart (`AppController.Restart()`, which starts the exe with `--wait-for <pid>`).
-- The button names **Check updates**, **Update** and **Open SSH** stay in English in every language.
 - `Loc.Culture` formats numbers and dates; `Format.SizeUnits` holds the size units (`KB|MB|…`, `Ko|Mo|…` in French).
 - A new language: copy `en.json`, translate it, add it to `Loc.Languages`.
 

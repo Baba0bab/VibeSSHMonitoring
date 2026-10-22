@@ -26,11 +26,11 @@
 ## Fonctionnalités
 
 - **Liste des serveurs** avec leur état, relevé en tâche de fond : en ligne / hors ligne et latence, CPU, RAM, disque, charge, distribution, noyau, durée de fonctionnement, nombre de mises à jour (dont sécurité) et « redémarrage requis ».
-- **Check updates** : lance `apt-get update` en root, puis affiche la liste de `apt list --upgradable`, paquet par paquet (version actuelle → nouvelle, dépôt, badge sécurité).
-- **Update** : `apt-get upgrade` (ou `full-upgrade`) non interactif, avec journal en direct. Les fichiers de configuration modifiés localement sont conservés (`--force-confold`), needrestart redémarre les services concernés, `autoremove` en option.
+- **Vérifier les mises à jour** : lance `apt-get update` en root, puis affiche la liste de `apt list --upgradable`, paquet par paquet (version actuelle → nouvelle, dépôt, badge sécurité).
+- **Mettre à jour** : `apt-get upgrade` (ou `full-upgrade`) non interactif, avec journal en direct. Les fichiers de configuration modifiés localement sont conservés (`--force-confold`), needrestart redémarre les services concernés, `autoremove` en option.
 - **Accès root, par serveur** : connexion directe en `root`, **sudo**, ou **su** (connexion avec un utilisateur simple, puis passage root avec le mot de passe root pour les serveurs qui refusent la connexion directe en root).
-- **Open SSH** : terminal intégré (onglets, xterm.js : couleurs, `htop`, `nano`, copier / coller) ou externe : Windows Terminal, PowerShell, invite de commandes, PuTTY ou commande personnalisée. Option « ouvrir directement en root » (`sudo -i` / `su -`, mot de passe saisi pour vous dans le terminal intégré).
-- **Actions groupées** sur une sélection de serveurs (actualiser, check updates, update, redémarrer quatre serveurs à la fois), **groupes / tags** avec filtres, recherche, bouton **Redémarrer**.
+- **Ouvrir SSH** : terminal intégré (onglets, xterm.js : couleurs, `htop`, `nano`, copier / coller) ou externe : Windows Terminal, PowerShell, invite de commandes, PuTTY ou commande personnalisée. Option « ouvrir directement en root » (`sudo -i` / `su -`, mot de passe saisi pour vous dans le terminal intégré).
+- **Actions groupées** sur une sélection de serveurs (actualiser, vérifier les mises à jour, mettre à jour, redémarrer quatre serveurs à la fois), **groupes / tags** avec filtres, recherche, bouton **Redémarrer**.
 - **Zone de notification** : la supervision continue fenêtre fermée ; notifications Windows (nouvelles mises à jour, serveur injoignable, clé d'hôte modifiée) ; recherche automatique des mises à jour (toutes les 6 / 12 / 24 h).
 - **Paramètres globaux + remplacements par serveur** pour la supervision, le terminal et les mises à jour.
 - **Installateur et mises à jour automatiques** : installateur par utilisateur (sans droits administrateur) ; l'application se met à jour toute seule depuis les Releases GitHub (petits téléchargements delta, installés à la fermeture).

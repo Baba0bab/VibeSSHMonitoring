@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+- The *Check updates*, *Update* and *Open SSH* buttons, and the texts that mention them, are now translated (they stayed in English in every language).
+- The "could not start ssh-keygen" error is now translated.
+
 ## [1.0.1] - 2026-10-21
 
 ### Added
