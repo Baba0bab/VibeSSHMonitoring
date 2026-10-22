@@ -4,8 +4,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-22
+
 ### Added
 - New setting *Open the server page when updating* (*Settings → Server updates*, and per server in its editor): turn it off to stay on the current page when clicking **Update** and follow the progress on the card. On by default, as before.
+- New setting *Concise labels* (*Settings → General*, under the language): uses shorter texts for the buttons that French, German and Spanish make long, such as *Check updates*. Applied after a restart.
+- The *Reboot required* badge now has a tooltip explaining why: the packages that asked for the reboot and the running kernel.
+
+### Changed
+- On a server card, the last reading time and the running operation now sit beside the update badges, saving a line (they wrap below on narrow cards).
 
 ### Fixed
 - The *Check updates*, *Update* and *Open SSH* buttons, and the texts that mention them, are now translated (they stayed in English in every language).
@@ -35,6 +42,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Windows installer (per-user, no admin rights, Start menu and desktop shortcuts, clean uninstall) and portable version.
 - Automatic application updates from GitHub Releases (delta downloads, install on exit or on restart, optional pre-releases).
 
-[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Baba0bab/VibeSSHMonitoring/releases/tag/v1.0.0
