@@ -40,130 +40,137 @@
         <DataTemplate x:Key="ServerCardTemplate">
             <Border x:Name="card" Style="{StaticResource Card}" Margin="0,0,12,12" Padding="16,14,16,12"
                     Cursor="Hand" MouseLeftButtonUp="Card_MouseLeftButtonUp">
-                <StackPanel>
-                    <!-- Header: selection, state, name, updates -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <CheckBox Style="{StaticResource SelectBox}" IsChecked="{Binding IsSelected}"
-                                  VerticalAlignment="Top" Margin="0,2,12,0" ToolTip="{ui:Tr Card.SelectTip}"/>
-                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="9" Height="9" Fill="{Binding StateBrush}" Margin="0,0,8,0"
-                                         VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis"/>
+                <!-- Two rows: the actions stay at the bottom when a taller card in the same row stretches this one -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <!-- Header: selection, state, name, updates -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox Style="{StaticResource SelectBox}" IsChecked="{Binding IsSelected}"
+                                      VerticalAlignment="Top" Margin="0,2,12,0" ToolTip="{ui:Tr Card.SelectTip}"/>
+                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="9" Height="9" Fill="{Binding StateBrush}" Margin="0,0,8,0"
+                                             VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Endpoint}" Style="{StaticResource Caption}" Margin="17,2,0,0"
+                                           TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding ShowEndpoint, Converter={StaticResource BoolToVisibility}}"/>
                             </StackPanel>
-                            <TextBlock Text="{Binding Endpoint}" Style="{StaticResource Caption}" Margin="17,2,0,0"
-                                       TextTrimming="CharacterEllipsis"
-                                       Visibility="{Binding ShowEndpoint, Converter={StaticResource BoolToVisibility}}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                            <TextBlock Text="{Binding StateText}" FontSize="12" Foreground="{Binding StateBrush}"
-                                       HorizontalAlignment="Right"/>
-                            <TextBlock Text="{Binding LatencyText}" Style="{StaticResource Caption}" HorizontalAlignment="Right"
-                                       Margin="0,2,0,0"/>
-                        </StackPanel>
-                    </Grid>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                                <TextBlock Text="{Binding StateText}" FontSize="12" Foreground="{Binding StateBrush}"
+                                           HorizontalAlignment="Right"/>
+                                <TextBlock Text="{Binding LatencyText}" Style="{StaticResource Caption}" HorizontalAlignment="Right"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
 
-                    <!-- Groups -->
-                    <ItemsControl ItemsSource="{Binding Tags}" Margin="30,8,0,0"
-                                  Visibility="{Binding HasTags, Converter={StaticResource BoolToVisibility}}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource NeutralBadge}" Margin="0,0,4,4">
-                                    <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <!-- Groups -->
+                        <ItemsControl ItemsSource="{Binding Tags}" Margin="30,8,0,0"
+                                      Visibility="{Binding HasTags, Converter={StaticResource BoolToVisibility}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource NeutralBadge}" Margin="0,0,4,4">
+                                        <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- System -->
+                        <TextBlock Style="{StaticResource Caption}" Margin="30,8,0,0" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding ShowSystem, Converter={StaticResource BoolToVisibility}}">
+                            <Run Text="{Binding OsText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                            <Run Text="{ui:Tr Card.UpFor}"/>
+                            <Run Text="{Binding UptimeText, Mode=OneWay}"/>
+                        </TextBlock>
+
+                        <!-- Resources -->
+                        <Grid Margin="30,10,0,0" Visibility="{Binding ShowResources, Converter={StaticResource BoolToVisibility}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" MinWidth="104"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="20"/>
+                                <RowDefinition Height="20"/>
+                                <RowDefinition Height="20"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{ui:Tr Meter.Cpu}" Style="{StaticResource MeterLabel}"/>
+                            <ProgressBar Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding CpuPercent, Mode=OneWay}"
+                                         Foreground="{Binding CpuBrush}"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CpuText}" Style="{StaticResource MeterValue}"/>
+                            <TextBlock Grid.Row="1" Text="{ui:Tr Meter.Ram}" Style="{StaticResource MeterLabel}"/>
+                            <ProgressBar Grid.Row="1" Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding MemPercent, Mode=OneWay}"
+                                         Foreground="{Binding MemBrush}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MemText}" Style="{StaticResource MeterValue}"/>
+                            <TextBlock Grid.Row="2" Text="{ui:Tr Meter.Disk}" Style="{StaticResource MeterLabel}"/>
+                            <ProgressBar Grid.Row="2" Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding DiskPercent, Mode=OneWay}"
+                                         Foreground="{Binding DiskBrush}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DiskText}" Style="{StaticResource MeterValue}"/>
+                        </Grid>
+
+                        <!-- Updates, then the running operation / last reading on the same line (wraps when narrow) -->
+                        <WrapPanel Margin="30,10,0,0">
+                            <StackPanel Orientation="Horizontal"
+                                        Visibility="{Binding ShowUpdates, Converter={StaticResource BoolToVisibility}}">
+                                <Border x:Name="updatesBadge" Style="{StaticResource NeutralBadge}" Margin="0,0,6,4" Padding="8,3"
+                                        Visibility="{Binding HasUpdateInfo, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="updatesIcon" Style="{StaticResource Icon}" Text="&#xE896;" FontSize="11"
+                                                   Margin="0,0,6,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock x:Name="updatesText" Text="{Binding UpdatesText}" FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </StackPanel>
                                 </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                                <Border Style="{StaticResource DangerBadge}" Margin="0,0,6,4" Padding="8,3"
+                                        Visibility="{Binding HasSecurityUpdates, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xEA18;" FontSize="11" Margin="0,0,6,0"
+                                                   Foreground="#FFFF8F8A"/>
+                                        <TextBlock FontSize="12" Foreground="#FFFF8F8A">
+                                            <Run Text="{Binding SecurityCount, Mode=OneWay}"/><Run Text="{ui:Tr Card.SecuritySuffix}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource WarningBadge}" Margin="0,0,6,4" Padding="8,3"
+                                        Visibility="{Binding RebootRequired, Converter={StaticResource BoolToVisibility}}"
+                                        ToolTip="{Binding RebootTip}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="11" Margin="0,0,6,0"
+                                                   Foreground="{StaticResource WarningBrush}"/>
+                                        <TextBlock Text="{ui:Tr Card.RebootRequired}" FontSize="12" Foreground="{StaticResource WarningBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
 
-                    <!-- System -->
-                    <TextBlock Style="{StaticResource Caption}" Margin="30,8,0,0" TextTrimming="CharacterEllipsis"
-                               Visibility="{Binding ShowSystem, Converter={StaticResource BoolToVisibility}}">
-                        <Run Text="{Binding OsText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
-                        <Run Text="{ui:Tr Card.UpFor}"/>
-                        <Run Text="{Binding UptimeText, Mode=OneWay}"/>
-                    </TextBlock>
-
-                    <!-- Resources -->
-                    <Grid Margin="30,10,0,0" Visibility="{Binding ShowResources, Converter={StaticResource BoolToVisibility}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto" MinWidth="104"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="20"/>
-                            <RowDefinition Height="20"/>
-                            <RowDefinition Height="20"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="{ui:Tr Meter.Cpu}" Style="{StaticResource MeterLabel}"/>
-                        <ProgressBar Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding CpuPercent, Mode=OneWay}"
-                                     Foreground="{Binding CpuBrush}"/>
-                        <TextBlock Grid.Column="2" Text="{Binding CpuText}" Style="{StaticResource MeterValue}"/>
-                        <TextBlock Grid.Row="1" Text="{ui:Tr Meter.Ram}" Style="{StaticResource MeterLabel}"/>
-                        <ProgressBar Grid.Row="1" Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding MemPercent, Mode=OneWay}"
-                                     Foreground="{Binding MemBrush}"/>
-                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MemText}" Style="{StaticResource MeterValue}"/>
-                        <TextBlock Grid.Row="2" Text="{ui:Tr Meter.Disk}" Style="{StaticResource MeterLabel}"/>
-                        <ProgressBar Grid.Row="2" Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding DiskPercent, Mode=OneWay}"
-                                     Foreground="{Binding DiskBrush}"/>
-                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DiskText}" Style="{StaticResource MeterValue}"/>
-                    </Grid>
-
-                    <!-- Updates, then the running operation / last reading on the same line (wraps when narrow) -->
-                    <WrapPanel Margin="30,10,0,0">
-                        <StackPanel Orientation="Horizontal"
-                                    Visibility="{Binding ShowUpdates, Converter={StaticResource BoolToVisibility}}">
-                            <Border x:Name="updatesBadge" Style="{StaticResource NeutralBadge}" Margin="0,0,6,4" Padding="8,3"
-                                    Visibility="{Binding HasUpdateInfo, Converter={StaticResource BoolToVisibility}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="updatesIcon" Style="{StaticResource Icon}" Text="&#xE896;" FontSize="11"
-                                               Margin="0,0,6,0" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                    <TextBlock x:Name="updatesText" Text="{Binding UpdatesText}" FontSize="12"
-                                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource DangerBadge}" Margin="0,0,6,4" Padding="8,3"
-                                    Visibility="{Binding HasSecurityUpdates, Converter={StaticResource BoolToVisibility}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource Icon}" Text="&#xEA18;" FontSize="11" Margin="0,0,6,0"
-                                               Foreground="#FFFF8F8A"/>
-                                    <TextBlock FontSize="12" Foreground="#FFFF8F8A">
-                                        <Run Text="{Binding SecurityCount, Mode=OneWay}"/><Run Text="{ui:Tr Card.SecuritySuffix}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource WarningBadge}" Margin="0,0,6,4" Padding="8,3"
-                                    Visibility="{Binding RebootRequired, Converter={StaticResource BoolToVisibility}}"
-                                    ToolTip="{Binding RebootTip}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="11" Margin="0,0,6,0"
-                                               Foreground="{StaticResource WarningBrush}"/>
-                                    <TextBlock Text="{ui:Tr Card.RebootRequired}" FontSize="12" Foreground="{StaticResource WarningBrush}"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" Margin="2,0,0,4" VerticalAlignment="Center">
-                            <Control Style="{StaticResource Spinner}" Width="12" Height="12" Margin="0,0,8,0"
-                                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
-                            <TextBlock Text="{Binding StatusLine}" FontSize="11" Foreground="{StaticResource TextTertiaryBrush}"
-                                       TextTrimming="CharacterEllipsis" MaxWidth="300" ToolTip="{Binding StateDetail}"/>
-                        </StackPanel>
-                    </WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="2,0,0,4" VerticalAlignment="Center">
+                                <Control Style="{StaticResource Spinner}" Width="12" Height="12" Margin="0,0,8,0"
+                                         Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+                                <TextBlock Text="{Binding StatusLine}" FontSize="11" Foreground="{StaticResource TextTertiaryBrush}"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="300" ToolTip="{Binding StateDetail}"/>
+                            </StackPanel>
+                        </WrapPanel>
+                    </StackPanel>
 
                     <!-- Actions: wrap when the card is narrow -->
-                    <DockPanel Margin="0,8,0,0" LastChildFill="True">
+                    <DockPanel Grid.Row="1" Margin="0,8,0,0" LastChildFill="True">
                         <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="32" Height="30" Content="&#xE712;"
                                 FontSize="14" VerticalAlignment="Top" ToolTip="{ui:Tr Common.MoreActions}" Click="More_Click"/>
                         <WrapPanel>
@@ -177,7 +184,7 @@
                                     Margin="0,0,6,6" Click="OpenSsh_Click" ToolTip="{ui:Tr Action.OpenSshTip}"/>
                         </WrapPanel>
                     </DockPanel>
-                </StackPanel>
+                </Grid>
             </Border>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
