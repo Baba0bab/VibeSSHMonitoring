@@ -175,6 +175,8 @@ public sealed class TrayIcon : IDisposable
     private string _tooltip = "Vibe SSH Monitoring";
 
     public event Action? OpenRequested;
+    /// <summary>Left click on the icon.</summary>
+    public event Action? Clicked;
     public event Action? CheckAllRequested;
     public event Action? RefreshAllRequested;
     public event Action? LockToggled;
@@ -289,6 +291,8 @@ public sealed class TrayIcon : IDisposable
             switch ((int)(long)lParam)   // version d'origine du protocole : lParam = message souris
             {
                 case WM_LBUTTONUP:
+                    _dispatcher.BeginInvoke(() => Clicked?.Invoke());
+                    break;
                 case NIN_BALLOONUSERCLICK:
                     _dispatcher.BeginInvoke(() => OpenRequested?.Invoke());
                     break;

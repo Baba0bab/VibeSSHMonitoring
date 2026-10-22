@@ -57,6 +57,7 @@ public sealed class AppController : IDisposable
 
         _tray = new TrayIcon(GetTrayState);
         _tray.OpenRequested += ShowWindow;
+        _tray.Clicked += ToggleWindow;
         _tray.CheckAllRequested += () => _ = CheckAllAsync();
         _tray.RefreshAllRequested += () => _ = Servers.RunForAllAsync(Servers.Servers, vm => Servers.RefreshAsync(vm));
         _tray.LockToggled += () =>
@@ -132,6 +133,15 @@ public sealed class AppController : IDisposable
         if (_window.WindowState == WindowState.Minimized)
             _window.WindowState = WindowState.Normal;
         _window.Activate();
+    }
+
+    /// <summary>Left click on the tray icon: hides the window when it is on screen, shows it otherwise.</summary>
+    private void ToggleWindow()
+    {
+        if (_window is { IsVisible: true } && _window.WindowState != WindowState.Minimized)
+            HideToTray();
+        else
+            ShowWindow();
     }
 
     /// <summary>Sends the application to the notification area.</summary>
