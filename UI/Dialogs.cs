@@ -73,8 +73,19 @@ public static class Dialogs
             if (validate is not null)
             {
                 dialog.SetBusy(true);
-                string? error = await validate(value);
-                dialog.SetBusy(false);
+                string? error;
+                try
+                {
+                    error = await validate(value);
+                }
+                catch (Exception ex)
+                {
+                    error = ex.Message;   // vault file not writable…: shown here, the dialog stays usable
+                }
+                finally
+                {
+                    dialog.SetBusy(false);
+                }
                 if (error is not null)
                 {
                     dialog.ShowError(error);
@@ -215,6 +226,8 @@ internal sealed class DialogWindow : Window
             if (e.Key == Key.Escape && _buttons.IsEnabled)
                 DialogResult = false;
         };
+        // Not while a check runs (Argon2): its result would land on a closed window
+        Closing += (_, e) => e.Cancel |= !_buttons.IsEnabled;
     }
 
     public PasswordBox AddPassword(string? label)

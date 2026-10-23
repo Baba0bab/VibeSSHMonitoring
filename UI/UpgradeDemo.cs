@@ -62,7 +62,7 @@ internal static class UpgradeDemo
         while (true)
         {
             vm.ClearUpgradeResults();
-            vm.Probe =new ProbeResult { HasApt = true, Packages = Packages.ToList() };
+            vm.Probe = new ProbeResult { HasApt = true, Packages = Packages.ToList() };
             await Task.Delay(2500);
             vm.BeginUpgrade();
             vm.IsBusy = true;

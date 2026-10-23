@@ -95,7 +95,7 @@ public partial class MainWindow : Window
         _terminals.CollectionChanged += (_, _) => SyncTerminalCount();
         _toastTimer.Tick += (_, _) => HideToast();
 
-        AboutCard.Description = Loc.T("Settings.AboutDesc", typeof(App).Assembly.GetName().Version?.ToString(3));
+        AboutCard.Description = Loc.T("Settings.AboutDesc", _app.Updater.CurrentVersion);
         InitializeSettings();
         RebuildTagFilters();
         SyncEmptyState();
@@ -113,7 +113,22 @@ public partial class MainWindow : Window
         SourceInitialized += (_, _) => DialogWindow.ApplyDarkFrame(this);
         SizeChanged += OnSizeChanged;
         PreviewKeyDown += OnPreviewKeyDown;
-        Closed += (_, _) => DisposeTerminals();
+        Closed += (_, _) => OnClosed();
+    }
+
+    /// <summary>
+    /// The window is rebuilt each time it is shown again: it lets go of the servers, which outlive
+    /// it, otherwise every closed window would stay in memory and keep reacting to their changes.
+    /// </summary>
+    private void OnClosed()
+    {
+        DisposeTerminals();
+        SetDetail(null);
+        _app.Servers.Servers.CollectionChanged -= OnServersChanged;
+        foreach (var vm in _app.Servers.Servers)
+            vm.PropertyChanged -= OnServerPropertyChanged;
+        _serversView.Filter = null;   // the default view is shared with the next window
+        _toastTimer.Stop();
     }
 
     // ===== Navigation =====

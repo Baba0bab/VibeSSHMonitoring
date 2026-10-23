@@ -27,6 +27,8 @@ public sealed class SecretVault
     // Former application name, kept as is: changing it would make existing DPAPI vaults unreadable
     private static readonly byte[] DpapiEntropy = "SshVibeMonitoring.v1"u8.ToArray();
 
+    // Read by connections on background threads while the interface changes it
+    private readonly object _sync = new();
     private Dictionary<Guid, ServerSecrets> _secrets = new();
     private byte[]? _key;      // key derived from the master password, kept while the vault is open
     private byte[]? _salt;
@@ -144,11 +146,14 @@ public sealed class SecretVault
             return false;   // wrong password (invalid GCM tag)
         }
 
-        _key = key;
-        _salt = salt;
         // File written with older parameters: saved again with the current ones on the next Save
         if (file.MemoryKb != Argon2MemoryKb || file.Iterations != Argon2Iterations || file.Parallelism != Argon2Parallelism)
-            _key = DeriveKey(password, _salt, Argon2MemoryKb, Argon2Iterations, Argon2Parallelism);
+        {
+            CryptographicOperations.ZeroMemory(key);
+            key = DeriveKey(password, salt, Argon2MemoryKb, Argon2Iterations, Argon2Parallelism);
+        }
+        _key = key;
+        _salt = salt;
         _lockedFile = null;
         SetLocked(false);
         return true;
@@ -181,23 +186,32 @@ public sealed class SecretVault
         LockStateChanged?.Invoke();
     }
 
-    public ServerSecrets Get(Guid serverId) =>
-        !IsLocked && _secrets.TryGetValue(serverId, out var s) ? s.Clone() : new ServerSecrets();
+    public ServerSecrets Get(Guid serverId)
+    {
+        lock (_sync)
+            return !IsLocked && _secrets.TryGetValue(serverId, out var s) ? s.Clone() : new ServerSecrets();
+    }
 
     public void Set(Guid serverId, ServerSecrets secrets)
     {
         if (IsLocked)
             throw new InvalidOperationException(Loc.T("Vault.IsLocked"));
-        if (secrets.IsEmpty)
-            _secrets.Remove(serverId);
-        else
-            _secrets[serverId] = secrets.Clone();
+        lock (_sync)
+        {
+            if (secrets.IsEmpty)
+                _secrets.Remove(serverId);
+            else
+                _secrets[serverId] = secrets.Clone();
+        }
         Save();
     }
 
     public void Remove(Guid serverId)
     {
-        if (!IsLocked && _secrets.Remove(serverId))
+        bool removed;
+        lock (_sync)
+            removed = !IsLocked && _secrets.Remove(serverId);
+        if (removed)
             Save();
     }
 
@@ -230,13 +244,15 @@ public sealed class SecretVault
         if (IsLocked)
             return;
         var file = new VaultFile { Mode = Mode };
-        byte[] plain = JsonSerializer.SerializeToUtf8Bytes(_secrets, AppConfig.JsonOptions);
+        byte[] plain;
+        lock (_sync)
+            plain = JsonSerializer.SerializeToUtf8Bytes(_secrets, AppConfig.JsonOptions);
         try
         {
             switch (Mode)
             {
                 case StorageMode.PlainText:
-                    file.Secrets = _secrets;
+                    file.Secrets = Deserialize(plain);
                     break;
                 case StorageMode.Dpapi:
                     file.Data = Convert.ToBase64String(

@@ -344,7 +344,7 @@ public sealed class TrayIcon : IDisposable
     {
         if (msg == CallbackMessage)
         {
-            switch ((int)(long)lParam)   // version d'origine du protocole : lParam = message souris
+            switch ((int)(long)lParam)   // original protocol version: lParam = mouse message
             {
                 case WM_LBUTTONUP:
                     _dispatcher.BeginInvoke(() => Clicked?.Invoke());

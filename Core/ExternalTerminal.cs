@@ -107,8 +107,10 @@ public static class ExternalTerminal
             }
             case TerminalMode.Cmd:
             {
-                // cmd /k "…": cmd strips the outer quotes and keeps the rest
-                string inner = $"title {title.Replace("&", "").Replace("|", "")} & {JoinWindowsArgs(new[] { SshExe }.Concat(args))}";
+                // cmd /k "…": cmd strips the outer quotes and keeps the rest. The title loses the
+                // characters cmd would read as operators ("web > prod" would redirect to a file)
+                string safeTitle = string.Concat(title.Where(c => c is not ('&' or '|' or '<' or '>' or '^' or '"' or '%')));
+                string inner = $"title {safeTitle} & {JoinWindowsArgs(new[] { SshExe }.Concat(args))}";
                 psi = new ProcessStartInfo("cmd.exe", $"/k \"{inner}\"") { UseShellExecute = true };
                 break;
             }

@@ -48,9 +48,11 @@ public sealed class ServerViewModel : ObservableObject
     private bool _isSelected;
     private DateTime? _lastRefresh;
 
+    private static readonly TimeSpan LogFlushDelay = TimeSpan.FromMilliseconds(100);
     private readonly LogBuffer _log = new();
     private readonly StringBuilder _pendingLog = new();
     private bool _logFlushScheduled;
+    private string? _logText;   // built once per change: the whole page is re-read on every probe
 
     /// <summary>Set during an upgrade: the output drives the package rows.</summary>
     private volatile AptProgressParser? _upgradeProgress;
@@ -411,10 +413,13 @@ public sealed class ServerViewModel : ObservableObject
 
     // ===== Log =====
 
-    public string LogText => _log.Text;
+    public string LogText => _logText ??= _log.Text;
     public bool HasLog => _log.Length > 0;
 
-    /// <summary>Appends to the log from any thread; display updates are batched.</summary>
+    /// <summary>
+    /// Appends to the log from any thread. Display updates are batched, ten per second at most:
+    /// each one gives the whole text (up to 400 000 characters) to the log box again.
+    /// </summary>
     public void AppendLog(string text)
     {
         lock (_pendingLog)
@@ -424,7 +429,11 @@ public sealed class ServerViewModel : ObservableObject
                 return;
             _logFlushScheduled = true;
         }
-        Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, FlushLog);
+        Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, async () =>
+        {
+            await Task.Delay(LogFlushDelay);
+            FlushLog();
+        });
     }
 
     public void AppendLogLine(string line) => AppendLog(line + "\n");
@@ -439,6 +448,7 @@ public sealed class ServerViewModel : ObservableObject
             _logFlushScheduled = false;
         }
         _log.Append(text);
+        _logText = null;
         OnPropertyChanged(nameof(LogText));
         OnPropertyChanged(nameof(HasLog));
         LogAppended?.Invoke();
@@ -449,6 +459,7 @@ public sealed class ServerViewModel : ObservableObject
     public void ClearLog()
     {
         _log.Clear();
+        _logText = null;
         OnPropertyChanged(nameof(LogText));
         OnPropertyChanged(nameof(HasLog));
     }

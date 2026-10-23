@@ -123,10 +123,13 @@ public sealed class AppUpdater
             : Task.CompletedTask;
 
     /// <summary>Checks for a new version and downloads it if there is one.</summary>
-    public Task CheckAndDownloadAsync(CancellationToken ct = default) =>
-        State is AppUpdateState.Ready
-            ? Task.CompletedTask
-            : RunAsync(_manager, () => _manager.CheckForUpdatesAsync(), ct);
+    public Task CheckAndDownloadAsync(CancellationToken ct = default)
+    {
+        if (State is AppUpdateState.Ready)
+            return Task.CompletedTask;
+        var manager = _manager;   // the channel may change meanwhile: check and download with the same one
+        return RunAsync(manager, () => manager.CheckForUpdatesAsync(), ct);
+    }
 
     private async Task RunAsync(UpdateManager manager, Func<Task<UpdateInfo?>> check, CancellationToken ct)
     {

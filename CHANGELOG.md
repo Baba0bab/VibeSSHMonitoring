@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+- A missed status reading (for example a ping timeout) during an upgrade or a check no longer closes the SSH connection the action is using.
+- A command that had already started (an upgrade showing its output) is no longer run a second time when the connection drops; the error is shown instead.
+- A server that accepts the TCP connection but never completes the SSH handshake is now shown as unreachable (timeout) instead of staying in its previous state.
+- Editing a server or changing the vault while a reading was connecting no longer shows a "disposed object" error on its card, nor leaves an SSH session open in the background.
+- The main window no longer stays in memory each time it is sent to the notification area.
+- Closing the master password dialog while the password is being checked no longer raises an error; a failure while saving the vault is shown in the dialog.
+- With the *Command prompt* terminal, a server name containing `>`, `<`, `^`, `%` or `"` no longer breaks the command (a `>` used to redirect to a file).
+- The About card shows the full version, pre-release suffix included.
+
+### Changed
+- The upgrade log refreshes at most ten times per second, which uses much less CPU on long upgrades.
+
 ## [1.0.3-beta.2] - 2026-10-23
 
 ### Added

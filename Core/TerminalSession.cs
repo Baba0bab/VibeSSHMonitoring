@@ -20,7 +20,7 @@ public sealed class TerminalSession : IDisposable
     private readonly StringBuilder _promptWatch = new();
     private DateTime _promptWatchUntil;
     private Timer? _rootTimer;
-    private bool _rootRequested;
+    private volatile bool _rootRequested;   // set by the timer thread, read by the reader thread
     private int _closed;
 
     public ServerConfig Server { get; }
@@ -101,7 +101,8 @@ public sealed class TerminalSession : IDisposable
         {
             // Restarted on every packet: fires after 400 ms of silence (end of the MOTD, prompt shown)
             _rootTimer ??= new Timer(_ => SendRootCommand());
-            _rootTimer.Change(400, Timeout.Infinite);
+            try { _rootTimer.Change(400, Timeout.Infinite); }
+            catch (ObjectDisposedException) { }   // the command was just sent: would end the session
             return;
         }
         if (_elevationPassword is null || DateTime.UtcNow > _promptWatchUntil)

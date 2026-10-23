@@ -157,6 +157,9 @@ public static class SshConnector
             }
             if (ct.IsCancellationRequested)
                 throw new OperationCanceledException(ct);
+            // Our own 20 s limit, not a cancellation: otherwise the card would silently keep its old state
+            if (ex is OperationCanceledException)
+                throw new SshOperationException(SshErrorKind.Timeout, Loc.T("Ssh.Timeout"), ex);
             throw Translate(ex);
         }
     }
@@ -278,16 +281,26 @@ public static partial class RemoteExec
     {
         using var cmd = client.CreateCommand(command, Encoding.UTF8);
         var all = new StringBuilder();
-        var execute = cmd.ExecuteAsync(ct);
+        Task execute;
+        try
+        {
+            // Throws right away when the session is gone ("client not connected")
+            execute = cmd.ExecuteAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            throw SshConnector.Translate(ex);
+        }
 
+        // Disposing the input stream sends EOF: right after the data, not when the command ends
         if (stdin is not null)
         {
-            using var input = cmd.CreateInputStream();
-            await input.WriteAsync(Encoding.UTF8.GetBytes(stdin), ct).ConfigureAwait(false);
+            using (var input = cmd.CreateInputStream())
+                await input.WriteAsync(Encoding.UTF8.GetBytes(stdin), ct).ConfigureAwait(false);
         }
         else
         {
-            // End of standard input (EOF); a very fast command may already be finished
+            // A very fast command may already be finished
             try { cmd.CreateInputStream().Dispose(); }
             catch (Exception ex) when (ex is SshException or ObjectDisposedException or InvalidOperationException) { }
         }
@@ -471,10 +484,12 @@ public static partial class RemoteExec
 /// </summary>
 public sealed class ServerConnection : IDisposable
 {
+    // Never disposed: operations still running when the connection is dropped release it afterwards
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly Func<ServerSecrets> _secrets;
     private readonly Func<bool> _vaultLocked;
     private ConnectedClient? _client;
+    private volatile bool _disposed;
 
     public ServerConfig Server { get; set; }
 
@@ -490,12 +505,21 @@ public sealed class ServerConnection : IDisposable
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
+            // Connection dropped (server edited, vault changed): the operation is abandoned
+            if (_disposed)
+                throw new OperationCanceledException();
             if (_client is { IsAlive: true })
                 return _client.Client;
             _client?.Dispose();
             _client = null;
-            _client = await SshConnector.ConnectAsync(Server, _secrets(), _vaultLocked(), ct).ConfigureAwait(false);
-            return _client.Client;
+            var connected = await SshConnector.ConnectAsync(Server, _secrets(), _vaultLocked(), ct).ConfigureAwait(false);
+            if (_disposed)
+            {
+                connected.Dispose();   // dropped while connecting: the session would stay open
+                throw new OperationCanceledException();
+            }
+            _client = connected;
+            return connected.Client;
         }
         finally
         {
@@ -503,9 +527,68 @@ public sealed class ServerConnection : IDisposable
         }
     }
 
-    /// <summary>Closes the connection (credentials or host key changed, network error).</summary>
-    public void Reset()
+    /// <summary>
+    /// Closes the connection after a network error, unless another operation has already replaced
+    /// it: that new connection may be in use.
+    /// </summary>
+    private async Task ResetAsync(SshClient failed)
     {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_client?.Client != failed)
+                return;
+            _client.Dispose();
+            _client = null;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public Task<CommandResult> RunAsync(string script, Action<string>? output, CancellationToken ct) =>
+        WithRetry(output, (client, tracked) => RemoteExec.RunAsync(client, script, tracked, ct), ct);
+
+    public Task<CommandResult> RunAsRootAsync(string script, Action<string>? output, CancellationToken ct) =>
+        WithRetry(output, (client, tracked) =>
+            RemoteExec.RunAsRootAsync(client, Server, _secrets(), _vaultLocked(), script, tracked, ct), ct);
+
+    /// <summary>
+    /// A connection kept open may be dead without knowing it: one single retry. Not once the
+    /// command has shown output: it has started, and running an upgrade twice is not harmless.
+    /// </summary>
+    private async Task<CommandResult> WithRetry(Action<string>? output,
+        Func<SshClient, Action<string>?, Task<CommandResult>> action, CancellationToken ct)
+    {
+        bool started = false;
+        Action<string>? tracked = output is null ? null : chunk =>
+        {
+            Volatile.Write(ref started, true);
+            output(chunk);
+        };
+        var client = await GetClientAsync(ct).ConfigureAwait(false);
+        try
+        {
+            return await action(client, tracked).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (IsStaleConnection(ex) && !ct.IsCancellationRequested && !Volatile.Read(ref started))
+        {
+            await ResetAsync(client).ConfigureAwait(false);
+            client = await GetClientAsync(ct).ConfigureAwait(false);
+            return await action(client, tracked).ConfigureAwait(false);
+        }
+    }
+
+    private static bool IsStaleConnection(Exception ex) =>
+        ex is SshConnectionException or ObjectDisposedException or SocketException ||
+        ex is SshOperationException { Kind: SshErrorKind.Unreachable or SshErrorKind.Other,
+            InnerException: SshConnectionException or ObjectDisposedException };
+
+    /// <summary>Waits for a connection being opened (cancelled at shutdown), then closes it.</summary>
+    public void Dispose()
+    {
+        _disposed = true;
         _gate.Wait();
         try
         {
@@ -516,42 +599,5 @@ public sealed class ServerConnection : IDisposable
         {
             _gate.Release();
         }
-    }
-
-    public Task<CommandResult> RunAsync(string script, Action<string>? output, CancellationToken ct) =>
-        WithRetry(client => RemoteExec.RunAsync(client, script, output, ct), ct);
-
-    /// <summary>Script run as the connected user, with data on its standard input.</summary>
-    public Task<CommandResult> RunWithInputAsync(string script, string stdin, CancellationToken ct) =>
-        WithRetry(client => RemoteExec.ExecAsync(client, "sh -c " + RemoteExec.Quote(script), stdin, null, ct), ct);
-
-    public Task<CommandResult> RunAsRootAsync(string script, Action<string>? output, CancellationToken ct) =>
-        WithRetry(client => RemoteExec.RunAsRootAsync(client, Server, _secrets(), _vaultLocked(), script, output, ct), ct);
-
-    /// <summary>A connection kept open may be dead without knowing it: one single retry.</summary>
-    private async Task<CommandResult> WithRetry(Func<SshClient, Task<CommandResult>> action, CancellationToken ct)
-    {
-        var client = await GetClientAsync(ct).ConfigureAwait(false);
-        try
-        {
-            return await action(client).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (IsStaleConnection(ex) && !ct.IsCancellationRequested)
-        {
-            Reset();
-            client = await GetClientAsync(ct).ConfigureAwait(false);
-            return await action(client).ConfigureAwait(false);
-        }
-    }
-
-    private static bool IsStaleConnection(Exception ex) =>
-        ex is SshConnectionException or ObjectDisposedException or SocketException ||
-        ex is SshOperationException { Kind: SshErrorKind.Unreachable, InnerException: SshConnectionException or ObjectDisposedException };
-
-    public void Dispose()
-    {
-        _client?.Dispose();
-        _client = null;
-        _gate.Dispose();
     }
 }

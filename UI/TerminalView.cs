@@ -76,7 +76,7 @@ public sealed class TerminalView : Border, IDisposable
         settings.AreDevToolsEnabled = false;
         settings.IsStatusBarEnabled = false;
         settings.IsZoomControlEnabled = false;
-        settings.AreBrowserAcceleratorKeysEnabled = false;   // F5, Ctrl+F… vont au terminal
+        settings.AreBrowserAcceleratorKeysEnabled = false;   // F5, Ctrl+F… go to the terminal
         settings.IsPasswordAutosaveEnabled = false;
         settings.IsGeneralAutofillEnabled = false;
 
@@ -104,20 +104,28 @@ public sealed class TerminalView : Border, IDisposable
         SetState(TerminalState.Closed);
     }
 
-    // ===== Messages de la page =====
+    // ===== Messages from the page =====
 
     private void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
-        JsonElement message;
+        JsonDocument document;
         try
         {
-            message = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+            document = JsonDocument.Parse(e.WebMessageAsJson);
         }
         catch (JsonException)
         {
             return;
         }
-        switch (message.GetProperty("t").GetString())
+        using (document)
+            HandleMessage(document.RootElement);
+    }
+
+    private void HandleMessage(JsonElement message)
+    {
+        if (!message.TryGetProperty("t", out var type))
+            return;
+        switch (type.GetString())
         {
             case "ready":
                 _columns = message.GetProperty("cols").GetUInt32();
@@ -220,7 +228,7 @@ public sealed class TerminalView : Border, IDisposable
             return;
         FlushOutput();
         _session = null;
-        session.Dispose();
+        _ = Task.Run(session.Dispose);   // disconnecting may take a moment
         Status(Loc.T("TerminalView.Ended"));
         SetState(TerminalState.Closed);
     }

@@ -176,7 +176,9 @@ public sealed class ServerManager : IDisposable
         }
         catch (SshOperationException ex)
         {
-            ApplyError(vm, ex, notify: background);
+            // An action started meanwhile uses the same connection: a missed reading (a ping
+            // timeout during an upgrade) must not cut it
+            ApplyError(vm, ex, notify: background, resetConnection: !vm.IsBusy);
         }
         catch (Exception ex)
         {
@@ -255,7 +257,7 @@ public sealed class ServerManager : IDisposable
         }
     }
 
-    private void ApplyError(ServerViewModel vm, SshOperationException ex, bool notify)
+    private void ApplyError(ServerViewModel vm, SshOperationException ex, bool notify, bool resetConnection = true)
     {
         var previous = vm.State;
         switch (ex.Kind)
@@ -288,7 +290,7 @@ public sealed class ServerManager : IDisposable
         }
         if (ex.Kind != SshErrorKind.ElevationFailed)
             vm.StateDetail = ex.Message;
-        if (ex.Kind is SshErrorKind.Unreachable or SshErrorKind.Timeout or SshErrorKind.AuthFailed)
+        if (resetConnection && ex.Kind is SshErrorKind.Unreachable or SshErrorKind.Timeout or SshErrorKind.AuthFailed)
             ResetConnection(vm.Id);
     }
 

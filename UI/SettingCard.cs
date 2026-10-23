@@ -21,7 +21,7 @@ public class SettingCard : ContentControl
     public static readonly DependencyProperty DescriptionProperty =
         DependencyProperty.Register(nameof(Description), typeof(string), typeof(SettingCard));
 
-    /// <summary>Glyphe Segoe Fluent Icons.</summary>
+    /// <summary>Segoe Fluent Icons glyph.</summary>
     public string? Icon
     {
         get => (string?)GetValue(IconProperty);
