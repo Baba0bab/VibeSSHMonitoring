@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Baba0bab — Vibe SSH Monitoring
 
 using System.Diagnostics;
-using System.Runtime;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -161,6 +160,7 @@ public sealed class AppController : IDisposable
         if (_window.HasTerminals)
         {
             _window.Hide();   // keeps the sessions open
+            ReleaseMemoryWhenHidden();
             return;
         }
         _closingToTray = true;
@@ -177,6 +177,7 @@ public sealed class AppController : IDisposable
             {
                 e.Cancel = true;
                 _window.Hide();
+                ReleaseMemoryWhenHidden();
             }
             else
             {
@@ -203,12 +204,19 @@ public sealed class AppController : IDisposable
             Exit();
             return;
         }
+        ReleaseMemoryWhenHidden();
+    }
+
+    /// <summary>
+    /// Window gone (closed, or hidden to keep the terminals): once the interface is idle, the
+    /// memory it used is given back to Windows. Skipped if the window came back in the meantime.
+    /// </summary>
+    private void ReleaseMemoryWhenHidden() =>
         _dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
         {
-            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-            GC.Collect();
+            if (!_exiting && _window is not { IsVisible: true })
+                ProcessMemory.Release();
         });
-    }
 
     public void Exit()
     {

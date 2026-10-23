@@ -16,6 +16,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 - The upgrade log refreshes at most ten times per second, which uses much less CPU on long upgrades.
+- In the notification area, the application gives its memory back to Windows: about 8 MB instead of about 65 MB once the window has been closed (also when it is only hidden to keep terminals open). The window still opens again instantly.
 
 ## [1.0.3-beta.2] - 2026-10-23
 
