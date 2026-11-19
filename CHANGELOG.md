@@ -4,19 +4,39 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-19
+
+Everything since 1.0.2, including the two betas.
+
+### Added
+- **Check all** and **Update all** buttons on the Servers page: check every server for updates, or update the servers that have pending updates (after the usual confirmation). Each is disabled when there is nothing to do.
+- The update list on a server's page now follows an upgrade live: each package shows an icon for waiting, downloading, installing (spinner), updated (check) or failed, with a progress bar above the list. Packages the upgrade adds (new dependencies, a new kernel) appear as they are installed, and the updated packages stay listed until the next check or upgrade.
+- **Middle click on Open SSH** opens the terminal in the background: an external terminal starts minimized and the built-in terminal adds its tab without leaving the current page, so several servers can be opened before starting to work.
+- New **Settings › Notification area icon** category: *Close to the notification area* moves there, *Left click hides the window* (on by default) toggles the window with a left click on the icon, and *Status of each server in the menu* (off by default) lists the servers in the icon's right-click menu with a colored dot (green up to date, orange updates available, red unreachable, gray not read yet); a click opens the server's page.
+- **Settings › Monitoring › User and address on the home page**: shows or hides the `user@address` line under each server's name in the server list (on by default; each server can override it in its own settings).
+- Turning off **Include pre-releases** while running a beta now offers to go back to the latest stable version (downloaded, then installed like an update). It is optional: keeping the beta is still possible, and the next newer stable version then comes as a normal update.
+- The language picker shows a flag next to each language.
+- The number of servers is shown next to **Servers** in the sidebar.
+
+### Changed
+- In the notification area, the application gives its memory back to Windows: about 8 MB instead of about 65 MB once the window has been closed (also when it is only hidden to keep terminals open). The window still opens again instantly.
+- The upgrade log refreshes at most ten times per second, which uses much less CPU on long upgrades.
+- The upgrade runs apt in the C locale so its progress can be read, which means the upgrade log is now always in English.
+- On the Servers page, the actions of a server card stay at the bottom of the card, even when a taller card sits beside it.
+- The Servers page summary now has its own line under the title, so the header buttons no longer wrap needlessly.
+- German and Spanish: *Refresh all* is renamed (*Alle neu einlesen*, *Releer todo*) so it is no longer confused with *Update all*.
+
 ### Fixed
 - A missed status reading (for example a ping timeout) during an upgrade or a check no longer closes the SSH connection the action is using.
 - A command that had already started (an upgrade showing its output) is no longer run a second time when the connection drops; the error is shown instead.
 - A server that accepts the TCP connection but never completes the SSH handshake is now shown as unreachable (timeout) instead of staying in its previous state.
+- An action on a server using *su* no longer stays busy forever when the SSH connection drops: it stops and reports the lost connection.
 - Editing a server or changing the vault while a reading was connecting no longer shows a "disposed object" error on its card, nor leaves an SSH session open in the background.
 - The main window no longer stays in memory each time it is sent to the notification area.
 - Closing the master password dialog while the password is being checked no longer raises an error; a failure while saving the vault is shown in the dialog.
 - With the *Command prompt* terminal, a server name containing `>`, `<`, `^`, `%` or `"` no longer breaks the command (a `>` used to redirect to a file).
+- Clicking **Servers** in the sidebar while a server's details are shown now returns to the server list (it did nothing).
 - The About card shows the full version, pre-release suffix included.
-
-### Changed
-- The upgrade log refreshes at most ten times per second, which uses much less CPU on long upgrades.
-- In the notification area, the application gives its memory back to Windows: about 8 MB instead of about 65 MB once the window has been closed (also when it is only hidden to keep terminals open). The window still opens again instantly.
 
 ## [1.0.3-beta.2] - 2026-10-23
 
@@ -84,7 +104,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Windows installer (per-user, no admin rights, Start menu and desktop shortcuts, clean uninstall) and portable version.
 - Automatic application updates from GitHub Releases (delta downloads, install on exit or on restart, optional pre-releases).
 
-[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.3-beta.2...HEAD
+[Unreleased]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.2...v1.0.3
 [1.0.3-beta.2]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.3-beta.1...v1.0.3-beta.2
 [1.0.3-beta.1]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.2...v1.0.3-beta.1
 [1.0.2]: https://github.com/Baba0bab/VibeSSHMonitoring/compare/v1.0.1...v1.0.2
